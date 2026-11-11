@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AERODROME — engineer's sheets</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @font-face{font-family:'Eniee';src:url('fonts/EnieeSlender-Regular.woff2') format('woff2');font-display:swap}
+  :root{ --sky:#a8d4e0; --paper:#f3eee2; --ink:#2b2b33; --red:#b8452a; --green:#6f8c6a; --blue:#8ea0b0; --pink:#e8b4b0; --gold:#c9a44a; --wash:#e9e2d0; --tan:#d9b77a; }
+  html,body{margin:0;background:#1a1816;color:var(--ink);font-family:Georgia,"Times New Roman",serif}
+  header{display:none}
+  #bar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;background:#1a1816;border-bottom:1px solid #3a3530;padding:10px 22px;color:var(--tan);font-family:'Eniee',Georgia,serif;font-size:21px;letter-spacing:0}
+  #bar b{font-weight:400;color:#fff;display:block;font-size:22px;line-height:1.1}
+  #bar small{display:block;font-size:16px;line-height:1.2;color:var(--tan)}
+  #bar .right{display:flex;align-items:center;gap:14px}
+  #bar a{display:flex;align-items:center;gap:8px;color:var(--tan);text-decoration:none;cursor:pointer;user-select:none;min-height:24px;font-size:13px;letter-spacing:.14em}
+  #bar a:hover{color:#fff}
+  #bar a svg{width:20px;height:20px;display:block}
+  #bar a.on{color:#fff} #bar a.on svg{fill:#fff}
+  #bar .sep{width:1px;height:18px;background:#5a544c;margin:0 4px}
+  /* the keyboard: everything pressable is focusable; focus is shown, quietly */
+  a:focus-visible,section.sheet:focus-visible,#home:focus-visible{outline:2px solid #d9b77a;outline-offset:3px;border-radius:2px}
+  section.sheet{outline-offset:-2px}
+  main{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:12px 22px 10px}
+  .sheet{background:transparent}
+  .sheet svg[data-face=sheet]{background:var(--paper);box-shadow:0 2px 0 #000, inset 0 0 60px rgba(90,70,40,.18)}
+  svg{display:block;width:100%;height:auto}
+  nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 22px 14px;color:var(--tan);font-size:16px;letter-spacing:.14em}
+  nav .page{grid-column:2;font-size:15px;color:#fff;text-align:center}
+  nav .right{grid-column:3;display:flex;justify-content:flex-end;align-items:center;gap:14px}
+  nav a{display:flex;align-items:center;gap:8px;color:var(--tan);text-decoration:none;cursor:pointer;user-select:none;min-height:24px}
+  nav a:hover{color:#fff}
+  nav a svg{width:32px;height:20px;display:block}
+  nav a.mode svg{width:20px;height:20px}
+  nav a.mode.on{color:#fff} nav a.mode.on svg{fill:#fff}
+  nav .sep{width:1px;height:18px;background:#5a544c;margin:0 4px}
+  footer{color:var(--tan);padding:0 22px 30px;font-size:15px;line-height:1.55;max-width:66em;margin:0 auto;text-align:center}
+  /* modes: the sheet is what changes; the room stays dark */
+  /* night and dark are PALETTES, computed once from the day tinctures (invert then hue-rotate 192; or dim),
+     and set as variables on body — no filter runs, nothing is re-rasterised. the Amiga answer. */
+  /* the turning is CSS, so the compositor can take it; pause is a play-state. */
+  .spin{animation:spin linear infinite;transform-box:fill-box;transform-origin:center}
+  .sway{animation:sway ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .nod{animation:nod ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .rain{animation:rain linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spinback{to{transform:rotate(-360deg)}}
+  @keyframes sway{0%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}100%{transform:rotate(-3deg)}}
+  @keyframes nod{0%{transform:rotate(0)}50%{transform:rotate(40deg)}100%{transform:rotate(0)}}
+  @keyframes rain{from{transform:translateY(0)}to{transform:translateY(60px)}}
+  body.paused .spin,body.paused .sway,body.paused .nod,body.paused .rain{animation-play-state:paused}
+  /* click any sheet and it fills the window, in continuity; click again to put it back */
+  .sheet{cursor:zoom-in;transition:transform .35s ease;position:relative}
+  .sheet .thumbname{display:block;text-align:center;padding:6px 4px 2px;font-family:'Eniee',Georgia,serif;font-size:13px;color:#9a9690;opacity:.82;pointer-events:none;letter-spacing:.04em;background:#1a1816}
+  .sheet.zoom .thumbname{display:none}
+  .sheet.zoom{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#1a1816;cursor:zoom-out;box-shadow:none}
+  #lbtools{position:fixed;right:22px;top:var(--navtop,56px);z-index:30;display:none;gap:14px}
+  body.lit #lbtools{display:flex}
+  #lbtools a{color:#6f6a62;font-family:'Eniee',Georgia,serif;font-size:15px;cursor:pointer;user-select:none;padding:6px 2px;border-bottom:2px solid transparent}
+  #lbtools a:hover{color:#111} #lbtools a.on{color:#111;border-bottom-color:#111}
+  body.night #lbtools a,body.dark #lbtools a{color:#9a9690}
+  body.night #lbtools a:hover,body.night #lbtools a.on,body.dark #lbtools a:hover,body.dark #lbtools a.on{color:#fff;border-bottom-color:#fff}
+  .sheet .face{display:none}
+  .sheet:not(.zoom) svg.face[data-face=sheet]{display:block}
+  .sheet.zoom .face{transition:transform .22s ease}
+  .sheet.zoom img.face{max-width:100vw;max-height:calc(100vh - var(--lbtop,96px));margin-top:var(--lbtop,96px);display:none;object-fit:contain;box-shadow:0 2px 0 #000}
+  .sheet.zoom .face.up{display:block}
+  .sheet.zoom{user-select:text}
+  .sheet.zoom svg text{user-select:text;cursor:text}
+  /* the museum-note grows from its lower-right corner on mouseover, twice its size, and settles back */
+  .sheet.zoom .cardette{pointer-events:none;transition:transform .22s ease}
+  .sheet.zoom svg{width:auto;height:auto;max-width:100vw;max-height:calc(100vh - var(--lbtop,96px));margin-top:var(--lbtop,96px)}
+  /* the manicule returns, only here: paired triangles back to back above the illustration */
+  #lbnav{position:fixed;top:var(--navtop,56px);left:50%;transform:translateX(-50%);z-index:30;display:none;gap:6px}
+  body.lit #lbnav{display:flex}
+  #lbnav a{display:block;width:44px;height:36px;cursor:pointer;color:#6f6a62;transition:color .18s}
+  #lbnav a:hover{color:#111}
+  body.night #lbnav a,body.dark #lbnav a{color:#9a9690}
+  body.night #lbnav a:hover,body.dark #lbnav a:hover{color:#fff}
+  #lbnav svg{width:44px;height:36px;display:block;fill:currentColor}
+  footer b{font-weight:400;color:#fff}
+</style>
+</head>
+<body>
+<header><b>AERO CLUB OF SONORA</b> &nbsp;·&nbsp; ENGINEER'S SHEETS &nbsp;·&nbsp; 1904 &nbsp;·&nbsp; none of these are held up by gas</header>
+<div id="bar"><span class="mast" id="home" style="cursor:pointer" tabindex="0" role="link" aria-label="Return to the gallery"><b>The Sonora Airostant Club.</b><small>Illustrations by Chas. Dellschau, 1904-1912.</small></span><div class="right" id="barright"></div></div>
+<div id="lbtools" role="tablist" aria-label="Faces"><a data-face="sheet" class="on" tabindex="0" role="tab">SHEET</a><a data-face="text" tabindex="0" role="tab">TEXT</a><a data-face="original" tabindex="0" role="tab">ORIGINAL</a></div>
+<div id="lbnav"><a id="lbprev" title="previous" tabindex="0" role="button" aria-label="Previous sheet"><svg viewBox="0 0 44 36"><path d="M34 4 L12 18 L34 32 Z"/></svg></a><a id="lbnext" title="next" tabindex="0" role="button" aria-label="Next sheet"><svg viewBox="0 0 44 36"><path d="M10 4 L32 18 L10 32 Z"/></svg></a></div>
+<main id="sheets"></main>
+<nav id="nav"></nav>
+<footer>
+This exhibit is intended to take Charles at the word of his pen. Some feel Dellschau's illustrations are intended to
+represent helicopters or inflatable balloons. He seemed to feel differently, and so wrote and illustrated. Actual men and
+women of that place and time, some well-known, are mentioned among the Club in his drawings. Joe Cheney's decalift SATURNUS,
+Honoré Laurence's GONDLEUR. He appeared to draw inspiration from them as a group.
+</footer>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+function el(n,a,kids){ var e=document.createElementNS(NS,n); for(var k in a) e.setAttribute(k,a[k]); (kids||[]).forEach(function(c){ e.appendChild(c); }); return e; }
+function txt(x,y,s,a){ var t=el('text',Object.assign({x:x,y:y,'font-family':'Georgia, serif','font-size':11,fill:'var(--ink)'},a||{})); t.textContent=s; return t; }
+function pol(r,a){ return [Math.cos(a)*r, Math.sin(a)*r]; }
+
+/* ---------- defs: hatching, cross-hatch, gores, stipple ---------- */
+function defs(){
+  var d=el('defs');
+  var h=el('pattern',{id:'hatch',width:4,height:4,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},[el('line',{x1:0,y1:0,x2:0,y2:4,stroke:'var(--ink)','stroke-width':.6,opacity:.55})]);
+  var x=el('pattern',{id:'xhatch',width:4,height:4,patternUnits:'userSpaceOnUse'},[el('line',{x1:0,y1:0,x2:4,y2:4,stroke:'var(--ink)','stroke-width':.5,opacity:.5}),el('line',{x1:4,y1:0,x2:0,y2:4,stroke:'var(--ink)','stroke-width':.5,opacity:.5})]);
+  var g=el('pattern',{id:'gores',width:6,height:6,patternUnits:'userSpaceOnUse'},[el('line',{x1:3,y1:0,x2:3,y2:6,stroke:'var(--ink)','stroke-width':.4,opacity:.45})]);
+  var s=el('pattern',{id:'stipple',width:5,height:5,patternUnits:'userSpaceOnUse'},[el('circle',{cx:1,cy:1,r:.5,fill:'var(--ink)',opacity:.35}),el('circle',{cx:3.5,cy:3.5,r:.5,fill:'var(--ink)',opacity:.35})]);
+  [h,x,g,s].forEach(function(p){ d.appendChild(p); });
+  return d;
+}
+
+/* ---------- a sectored rotor disc: the lift. sectors in wash, spokes, rim, hub, and it turns ---------- */
+function rotor(cx,cy,r,o){
+  o=o||{}; var n=o.sectors||16, cols=o.colors||['var(--red)','var(--wash)','var(--green)','var(--wash)'], rate=o.rate||9, dir=o.dir||1, inner=o.inner||0.34;
+  var g=el('g',{transform:'translate('+cx+' '+cy+')'});
+  var spin=el('g');
+  for(var i=0;i<n;i++){ var a0=i/n*Math.PI*2, a1=(i+1)/n*Math.PI*2, p0=pol(r,a0), p1=pol(r,a1), q0=pol(r*inner,a0), q1=pol(r*inner,a1);
+    var dpath='M'+q0[0]+' '+q0[1]+' L'+p0[0]+' '+p0[1]+' A'+r+' '+r+' 0 0 1 '+p1[0]+' '+p1[1]+' L'+q1[0]+' '+q1[1]+' A'+(r*inner)+' '+(r*inner)+' 0 0 0 '+q0[0]+' '+q0[1]+'Z';
+    spin.appendChild(el('path',{d:dpath,fill:cols[i%cols.length],stroke:'var(--ink)','stroke-width':.8}));
+    if(i%2) spin.appendChild(el('path',{d:dpath,fill:'url(#hatch)'}));
+  }
+  for(var k=0;k<n/2;k++){ var a=k/(n/2)*Math.PI*2, p=pol(r,a); spin.appendChild(el('line',{x1:0,y1:0,x2:p[0],y2:p[1],stroke:'var(--ink)','stroke-width':1.1})); }
+  for(var m=0;m<n;m+=2){ var am=(m+0.5)/n*Math.PI*2, pa=pol(r*0.95,am-0.06), pb=pol(r*0.72,am+0.1), pc=pol(r*0.95,am+0.18);
+    spin.appendChild(el('path',{d:'M'+pa[0]+' '+pa[1]+' Q'+pb[0]+' '+pb[1]+' '+pc[0]+' '+pc[1],fill:'none',stroke:'var(--ink)','stroke-width':1.6,opacity:.8})); }
+  if(o.sway){ spin.setAttribute('class','sway'); spin.setAttribute('style','animation-duration:'+rate+'s'); }
+  else { spin.setAttribute('class','spin'); spin.setAttribute('style','animation-duration:'+rate+'s;animation-name:'+(dir<0?'spinback':'spin')); }
+  g.appendChild(spin);
+  g.appendChild(el('circle',{r:r+3,fill:'none',stroke:'var(--ink)','stroke-width':3}));
+  g.appendChild(el('circle',{r:r+3,fill:'none',stroke:o.rim||'var(--red)','stroke-width':1.2}));
+  g.appendChild(el('circle',{r:r*inner-2,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4}));
+  g.appendChild(el('circle',{r:r*0.12,fill:'var(--ink)'})); g.appendChild(el('circle',{r:r*0.05,fill:'var(--paper)'}));
+  for(var b=0;b<6;b++){ var pb2=pol(r*0.22,b/6*Math.PI*2); g.appendChild(el('circle',{cx:pb2[0],cy:pb2[1],r:1.6,fill:'var(--ink)'})); }
+  return g;
+}
+/* a falleasy canopy: half a dome of gores, seen from the side, lines down to a load */
+function canopy(cx,cy,r,o){
+  o=o||{}; var n=o.gores||14, g=el('g',{transform:'translate('+cx+' '+cy+')'}), sw=el('g');
+  for(var i=0;i<n;i++){ var a0=Math.PI+i/n*Math.PI, a1=Math.PI+(i+1)/n*Math.PI, p0=pol(r,a0), p1=pol(r,a1);
+    sw.appendChild(el('path',{d:'M0 0 L'+p0[0]+' '+p0[1]+' A'+r+' '+r+' 0 0 1 '+p1[0]+' '+p1[1]+' Z',fill:(i%2?'var(--pink)':'var(--wash)'),stroke:'var(--ink)','stroke-width':.8}));
+    if(i%3===0) sw.appendChild(el('path',{d:'M0 0 L'+p0[0]+' '+p0[1]+' A'+r+' '+r+' 0 0 1 '+p1[0]+' '+p1[1]+' Z',fill:'url(#gores)'})); }
+  sw.appendChild(el('path',{d:'M'+(-r)+' 0 A'+r+' '+r+' 0 0 1 '+r+' 0',fill:'none',stroke:'var(--ink)','stroke-width':2.2}));
+  sw.appendChild(el('path',{d:'M'+(-r)+' 0 Q0 '+(r*0.18)+' '+r+' 0',fill:'none',stroke:'var(--ink)','stroke-width':1.2}));
+  // lines to the load
+  var ly=o.drop||r*1.1; for(var k=0;k<=n;k+=2){ var p=pol(r,Math.PI+k/n*Math.PI); sw.appendChild(el('line',{x1:p[0],y1:p[1]<0?0:p[1],x2:0,y2:ly,stroke:'var(--ink)','stroke-width':.6})); }
+  sw.setAttribute('class','sway'); sw.setAttribute('style','animation-duration:'+(o.rate||7)+'s');
+  g.appendChild(sw); return g;
+}
+/* ---------- the Zuppe reservoir: a riveted boiler, with the pressure gauge and a sponge rotus ---------- */
+function reservoir(cx,cy,w,h,o){
+  o=o||{}; var g=el('g');
+  g.appendChild(el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,rx:h/2,fill:o.fill||'var(--blue)',stroke:'var(--ink)','stroke-width':1.4}));
+  g.appendChild(el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,rx:h/2,fill:'url(#gores)'}));
+  g.appendChild(el('rect',{x:cx-w/2+8,y:cy-h/2+3,width:w-16,height:3,rx:1.5,fill:'var(--paper)',opacity:.6}));
+  for(var i=0;i<Math.floor(w/9);i++){ g.appendChild(el('circle',{cx:cx-w/2+8+i*9,cy:cy+h/2-4,r:1.1,fill:'var(--ink)'})); g.appendChild(el('circle',{cx:cx-w/2+8+i*9,cy:cy-h/2+8,r:1.1,fill:'var(--ink)'})); }
+  g.appendChild(el('line',{x1:cx-w/2-6,y1:cy,x2:cx+w/2+6,y2:cy,stroke:'var(--ink)','stroke-width':2}));
+  var gauges=o.gauges||1; for(var q=0;q<gauges;q++){ var gx=cx+(q-(gauges-1)/2)*22;
+    g.appendChild(el('circle',{cx:gx,cy:cy-h/2-9,r:7,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.2}));
+    g.appendChild(el('line',{x1:gx,y1:cy-h/2-9,x2:gx+4,y2:cy-h/2-14,stroke:'var(--red)','stroke-width':1.4}));
+    g.appendChild(el('rect',{x:gx-2,y:cy-h/2-3,width:4,height:4,fill:'var(--ink)'})); }
+  g.appendChild(el('line',{x1:cx+w/2-6,y1:cy-h/2,x2:cx+w/2-6,y2:cy-h/2-14,stroke:'var(--ink)','stroke-width':1.4}));
+  var sr=el('g',{transform:'translate('+(cx+w/2-6)+' '+(cy-h/2-18)+')'}), srs=el('g',{'class':'spin',style:'animation-duration:2.2s'}); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; srs.appendChild(el('line',{x1:0,y1:0,x2:Math.cos(a)*5,y2:Math.sin(a)*5,stroke:'var(--ink)','stroke-width':1})); }
+  sr.appendChild(srs); g.appendChild(sr);
+  return g;
+}
+/* ---------- gondolas: ship-hull, cage, bell ---------- */
+function gondola(cx,cy,w,h,kind){
+  var g=el('g');
+  if(kind==='hull'){
+    var d='M'+(cx-w/2)+' '+(cy-h/2)+' L'+(cx+w/2)+' '+(cy-h/2)+' L'+(cx+w/2-10)+' '+(cy+h/2)+' L'+(cx-w/2+10)+' '+(cy+h/2)+' Z';
+    g.appendChild(el('path',{d:d,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6}));
+    g.appendChild(el('path',{d:d,fill:'url(#xhatch)'}));
+    for(var i=1;i<6;i++) g.appendChild(el('line',{x1:cx-w/2+i*w/6,y1:cy-h/2,x2:cx-w/2+i*w/6-2,y2:cy+h/2,stroke:'var(--ink)','stroke-width':.8}));
+    g.appendChild(el('line',{x1:cx-w/2-4,y1:cy-h/2,x2:cx+w/2+4,y2:cy-h/2,stroke:'var(--ink)','stroke-width':2.4}));
+  } else if(kind==='bell'){
+    var b='M'+(cx-w/2)+' '+(cy+h/2)+' Q'+(cx-w/2)+' '+(cy-h/2)+' '+cx+' '+(cy-h/2)+' Q'+(cx+w/2)+' '+(cy-h/2)+' '+(cx+w/2)+' '+(cy+h/2)+' Z';
+    g.appendChild(el('path',{d:b,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.8})); g.appendChild(el('path',{d:b,fill:'url(#xhatch)'}));
+    g.appendChild(el('rect',{x:cx-w/2-6,y:cy+h/2-4,width:w+12,height:8,fill:'var(--ink)'}));
+    for(var j=0;j<Math.floor(w/10);j++) g.appendChild(el('circle',{cx:cx-w/2+8+j*10,cy:cy+h/2-10,r:1.3,fill:'var(--ink)'}));
+    g.appendChild(el('rect',{x:cx-6,y:cy-h/2-14,width:12,height:16,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2}));
+  } else {
+    g.appendChild(el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,fill:'none',stroke:'var(--ink)','stroke-width':1.4}));
+    for(var jj=0;jj<=4;jj++){ g.appendChild(el('line',{x1:cx-w/2,y1:cy-h/2+jj*h/4,x2:cx+w/2,y2:cy-h/2+jj*h/4,stroke:'var(--ink)','stroke-width':.7})); }
+    for(var k=0;k<=6;k++){ g.appendChild(el('line',{x1:cx-w/2+k*w/6,y1:cy-h/2,x2:cx-w/2+k*w/6,y2:cy+h/2,stroke:'var(--ink)','stroke-width':.7})); }
+    g.appendChild(el('line',{x1:cx-w/2,y1:cy-h/2,x2:cx+w/2,y2:cy+h/2,stroke:'var(--ink)','stroke-width':.5,opacity:.6})); g.appendChild(el('line',{x1:cx+w/2,y1:cy-h/2,x2:cx-w/2,y2:cy+h/2,stroke:'var(--ink)','stroke-width':.5,opacity:.6}));
+  }
+  return g;
+}
+function pilot(cx,cy,s,hat){ var g=el('g'); g.appendChild(el('ellipse',{cx:cx,cy:cy+8*s,rx:7*s,ry:9*s,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1})); g.appendChild(el('circle',{cx:cx,cy:cy-2*s,r:4*s,fill:'var(--pink)',stroke:'var(--ink)','stroke-width':1}));
+  if(hat==='bowler'){ g.appendChild(el('ellipse',{cx:cx,cy:cy-6*s,rx:6*s,ry:1.6*s,fill:'var(--ink)'})); g.appendChild(el('rect',{x:cx-3.5*s,y:cy-10*s,width:7*s,height:4.5*s,rx:2*s,fill:'var(--ink)'})); }
+  else { g.appendChild(el('rect',{x:cx-3.5*s,y:cy-9*s,width:7*s,height:4*s,fill:'var(--red)',stroke:'var(--ink)','stroke-width':.8})); g.appendChild(el('line',{x1:cx,y1:cy-9*s,x2:cx+5*s,y2:cy-12*s,stroke:'var(--ink)','stroke-width':.8})); }
+  return g; }
+function strut(x1,y1,x2,y2,w){ return el('line',{x1:x1,y1:y1,x2:x2,y2:y2,stroke:'var(--ink)','stroke-width':w||1.6,'stroke-linecap':'round'}); }
+function foot(cx,cy){ var g=el('g'); g.appendChild(el('path',{d:'M'+(cx-12)+' '+(cy+14)+' L'+cx+' '+(cy-10)+' L'+(cx+12)+' '+(cy+14)+' Z',fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.3})); g.appendChild(el('circle',{cx:cx,cy:cy-2,r:6,fill:'var(--gold)',stroke:'var(--ink)','stroke-width':1.2})); g.appendChild(el('path',{d:'M'+(cx-4)+' '+(cy-4)+' h8 M'+(cx-4)+' '+(cy-1)+' h8 M'+(cx-4)+' '+(cy+2)+' h8',stroke:'var(--ink)','stroke-width':.7})); return g; }
+function wheel(cx,cy,r){ var g=el('g'); g.appendChild(el('circle',{cx:cx,cy:cy,r:r,fill:'none',stroke:'var(--ink)','stroke-width':2.4})); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; g.appendChild(el('line',{x1:cx,y1:cy,x2:cx+Math.cos(a)*r,y2:cy+Math.sin(a)*r,stroke:'var(--ink)','stroke-width':.7})); } return g; }
+function stake(cx,cy){ var g=el('g'); g.appendChild(el('path',{d:'M'+(cx-5)+' '+cy+' L'+(cx+5)+' '+cy+' L'+cx+' '+(cy+18)+' Z',fill:'var(--ink)'})); g.appendChild(el('rect',{x:cx-7,y:cy-3,width:14,height:3,fill:'var(--ink)'})); return g; }
+function callout(x,y,lx,ly,n){ var g=el('g'); g.appendChild(el('line',{x1:x,y1:y,x2:lx,y2:ly,stroke:'var(--red)','stroke-width':.8})); g.appendChild(el('circle',{cx:lx,cy:ly,r:7,fill:'var(--paper)',stroke:'var(--red)','stroke-width':1})); g.appendChild(txt(lx,ly+3.5,String(n),{'text-anchor':'middle','font-size':9,fill:'var(--red)'})); return g; }
+function titleBlock(W,H,name,owner,plate,legend){
+  var g=el('g',{'class':'cardette',transform:'translate('+(W-300)+' '+(H-112)+')'});
+  var BW=280, pad=8, inner=BW-pad*2;
+  g.appendChild(el('rect',{x:0,y:0,width:BW,height:98,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.2}));
+  g.appendChild(el('line',{x1:0,y1:22,x2:BW,y2:22,stroke:'var(--ink)','stroke-width':.8}));
+  g.appendChild(txt(pad,15,'AERO CLUB OF SONORA · PLATE '+plate,{'font-size':9,'letter-spacing':'.12em'}));
+  g.appendChild(txt(pad,40,name,{'font-size':17,'font-style':'italic'}));
+  // the subtitle and the legend shrink until they fit the box, measured, not guessed
+  var cv=document.createElement('canvas').getContext('2d');
+  function fits(s,px,maxw){ cv.font=px+'px Georgia, serif'; return cv.measureText(s).width<=maxw; }
+  var ownerPx=9; while(ownerPx>5.5 && !fits(owner,ownerPx,inner)) ownerPx-=0.25;
+  g.appendChild(txt(pad,54,owner,{'font-size':ownerPx,fill:'var(--ink)',opacity:.9}));
+  var colw=inner/2-6, legPx=8;
+  legend.forEach(function(l,i){ var s=(i+1)+'. '+l; while(legPx>5 && !fits(s,legPx,colw)) legPx-=0.25; });
+  legend.forEach(function(l,i){ g.appendChild(txt(pad+(i%2)*(inner/2),68+Math.floor(i/2)*10,(i+1)+'. '+l,{'font-size':legPx,fill:'var(--ink)',opacity:.9})); });
+  return g;
+}
+function hand(x,y,s){ var g=el('g'); var lines=[], cur=''; String(s).split(' ').forEach(function(w){ if((cur+' '+w).trim().length>34){ lines.push(cur.trim()); cur=w; } else cur=cur+' '+w; }); if(cur.trim()) lines.push(cur.trim());
+  lines.forEach(function(l,i){ g.appendChild(txt(x,y+i*15,l,{'font-family':"'Eniee',Georgia,serif",'font-size':11.5,fill:'var(--ink)',opacity:.82})); }); return g; }
+
+/* ---------- the sheets, twelve, in roster order less the repeat ---------- */
+var W=800,H=600;
+var SHEETS=[
+ { name:'SATURNUS', owner:"Joe Cheney's. Illustration 27, fig. a, and Aftermath, Page 8. Drawn from his pages.", plate:'I',
+   legend:['The ring: eight stippled cells on red spokes.', 'Lens hull, ribbed, silver, with red hoops.', 'Two hubs on one axle, fans turning.', 'Cabin amidships, pilot.', 'Weights, four, on chains (side view).', 'Axle, through the ring.'],
+   text:["# Page 68, Illustration 27, fig. a (top view):", "Joe Cheneys ‘Saturnus.’", "[Infri] per A. Sch. and Geo Newells Idea", "# Aftermath, Page 8 (side view), left margin:", "Peter Menip says: If not to large a shure thing. but Joe cant you house him? o yes.", "# Along the foot, in his hand:", "a little pay of 60 feet for the body and room for the steering Blades — makes 70 by 100 feet, 75 feet high. and what can you earn whit your Saturnus to make it pay? no, no friend Joe. a goverment might build and keep one for sientific or military use, but could it do good to a private Man or Company? but a good flyer she will be, sure the best Idea i have seen of you Boys yet — go on, try your [Sprock] Joe. i like to hear what he would say, the Sucker Kicker, combined whit the Saturnus, if he could have the Idea explained to him. i believe he fix the think up, to just see it work, and than keep his Secret yet. and well go on and help you self.", "# Signed:", "C.A.A.D."], original:"assets/__paperprints/SATURNUS - Joe Cheney - top view .png",
+   estimate:["His measure: 70 by 100 feet, 75 high; 60 feet for the body.", "A lens hull of about 30 by 20 by 10 metres holds some 3,000 cubic metres, with the end-cells more.", "Lift, in hydrogen: about 3.3 tonnes.", "Weight, in wood and wire with eight lifter housings and crew: about 2 tonnes.", "Verdict: She floats, with a tonne to spare. The margin's question was not whether, but what she would earn."],
+   draw:function(s){
+     // Illustration 27, fig. a, the top view: a ribbed lens hull, red hoops, two hubs on one axle, in a great ring of stippled cells; and the side view's four weights hung beneath.
+     s.appendChild(el('circle',{cx:400,cy:270,r:230,fill:'var(--paper)',stroke:'var(--red)','stroke-width':3}));
+     s.appendChild(el('circle',{cx:400,cy:270,r:230,fill:'url(#stipple)'}));
+     for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; s.appendChild(el('line',{x1:400+Math.cos(a)*80,y1:270+Math.sin(a)*80,x2:400+Math.cos(a)*230,y2:270+Math.sin(a)*230,stroke:'var(--red)','stroke-width':1.6})); }
+     // the lens hull, ribbed, silver, red hoops
+     s.appendChild(el('ellipse',{cx:400,cy:270,rx:200,ry:70,fill:'#c9cdd2',stroke:'var(--ink)','stroke-width':1.8}));
+     for(var i=-9;i<=9;i++){ s.appendChild(el('ellipse',{cx:400,cy:270,rx:Math.max(6,200-Math.abs(i)*22),ry:70,fill:'none',stroke:'var(--ink)','stroke-width':.7})); }
+     [[-120,0],[120,0]].forEach(function(v){ s.appendChild(el('ellipse',{cx:400+v[0],cy:270,rx:16,ry:70,fill:'none',stroke:'var(--red)','stroke-width':2})); });
+     s.appendChild(el('ellipse',{cx:400,cy:270,rx:200,ry:70,fill:'none',stroke:'var(--red)','stroke-width':2}));
+     // two hubs on one axle, each a small fan turning
+     s.appendChild(strut(230,270,570,270,2.4));
+     [300,500].forEach(function(x,i){ var f=el('g',{'class':'spin',style:'animation-duration:6s;animation-name:'+(i?'spinback':'spin')}); for(var k=0;k<6;k++){ var a=k/6*Math.PI*2; f.appendChild(el('path',{d:'M'+x+' 270 Q'+(x+Math.cos(a)*18-Math.sin(a)*10)+' '+(270+Math.sin(a)*18+Math.cos(a)*10)+' '+(x+Math.cos(a)*34)+' '+(270+Math.sin(a)*34)+' Q'+(x+Math.cos(a)*18+Math.sin(a)*10)+' '+(270+Math.sin(a)*18-Math.cos(a)*10)+' '+x+' 270 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':.9})); } s.appendChild(f); s.appendChild(el('circle',{cx:x,cy:270,r:6,fill:'var(--ink)'})); });
+     // the cabin amidships, and the four weights on chains from the side view
+     s.appendChild(el('rect',{x:380,y:300,width:40,height:26,rx:4,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(pilot(400,300,1));
+     [250,350,450,550].forEach(function(x){ s.appendChild(el('line',{x1:x,y1:340,x2:x,y2:470,stroke:'var(--ink)','stroke-width':1.2,'stroke-dasharray':'2 2'})); s.appendChild(el('circle',{cx:x,cy:482,r:12,fill:'var(--ink)'})); });
+     s.appendChild(strut(230,340,570,340,2));
+     s.appendChild(callout(560,120,650,80,1)); s.appendChild(callout(560,270,660,230,2)); s.appendChild(callout(500,270,600,400,3)); s.appendChild(callout(400,310,520,340,4)); s.appendChild(callout(250,482,160,520,5)); s.appendChild(callout(230,270,120,300,6));
+     s.appendChild(hand(44,48,"'go on, try your Sprock Joe. i like to hear what he would say.' — C.A.A.D., Aftermath, Page 8"));
+   }},
+ { name:'GONDLEUR', owner:"Honoré Laurence's combination; the 10 ft Browne Airostat. Fig. 4. Drawn from his page.", plate:'II',
+   legend:['Turret, above the rim.', 'The disc, quartered red and green, twelve sectors.', 'Side-cells, two, on the bar.', 'Hub engine, a caged fan.', 'Legs, three, tall, on wheels.', 'The ground, green.'],
+   text:["# Head:", "Fig 4", "# Lower left:", "Honoré Laurence", "combination", "# Lower right:", "10 ft Browne", "Airostat", "Gondleur"], original:"assets/__paperprints/GONDLEUR - Honore Laurence 10ft Browne airostant .png",
+   estimate:["His measure: the 10 ft Browne Airostat.", "A sphere of 3 metres holds about 14 cubic metres; the side-cells are smaller.", "Lift: about 15 kilograms.", "Verdict: A model. He gave the measure so we would know."],
+   draw:function(s){
+     // Fig. 4: one great disc quartered red and green with the engine in the hub, a small turret above, two side-cells on a bar, three wheels on tall legs, a trailing line.
+     s.appendChild(strut(140,200,660,200,2.4)); s.appendChild(strut(140,330,660,330,2.4));
+     [[150,265],[650,265]].forEach(function(c){ s.appendChild(el('circle',{cx:c[0],cy:c[1],r:60,fill:'var(--wash)',stroke:'var(--red)','stroke-width':2.4})); s.appendChild(el('circle',{cx:c[0],cy:c[1],r:60,fill:'url(#gores)'}));
+       for(var k=0;k<3;k++){ var a=k/3*Math.PI*2+0.5; s.appendChild(el('path',{d:'M'+c[0]+' '+c[1]+' L'+(c[0]+Math.cos(a)*60)+' '+(c[1]+Math.sin(a)*60),stroke:'var(--green)','stroke-width':3})); } });
+     s.appendChild(rotor(400,265,160,{sectors:12,inner:0.3,rate:9,colors:['var(--red)','var(--green)','var(--red)','var(--green)'],rim:'var(--red)'}));
+     // the hub engine: a small fan in a cage, and the turret above the rim
+     s.appendChild(el('circle',{cx:400,cy:265,r:44,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4})); var f=el('g',{'class':'spin',style:'animation-duration:3s;animation-name:spinback'}); for(var k=0;k<5;k++){ var a=k/5*Math.PI*2; f.appendChild(el('path',{d:'M400 265 Q'+(400+Math.cos(a)*22-Math.sin(a)*12)+' '+(265+Math.sin(a)*22+Math.cos(a)*12)+' '+(400+Math.cos(a)*40)+' '+(265+Math.sin(a)*40)+' Q'+(400+Math.cos(a)*22+Math.sin(a)*12)+' '+(265+Math.sin(a)*22-Math.cos(a)*12)+' 400 265 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':.9})); } s.appendChild(f);
+     s.appendChild(el('rect',{x:380,y:90,width:40,height:20,rx:5,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('circle',{cx:400,cy:84,r:5,fill:'var(--gold)',stroke:'var(--ink)'}));
+     // three tall legs, three wheels
+     [250,400,550].forEach(function(x){ s.appendChild(strut(x,330,x,480,2.4)); s.appendChild(el('path',{d:'M'+(x-14)+' 480 L'+(x+14)+' 480 L'+(x+10)+' 500 L'+(x-10)+' 500 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(wheel(x,520,20)); });
+     s.appendChild(el('line',{x1:60,y1:545,x2:740,y2:545,stroke:'var(--green)','stroke-width':3}));
+     s.appendChild(callout(400,110,520,60,1)); s.appendChild(callout(560,265,660,160,2)); s.appendChild(callout(150,225,90,130,3)); s.appendChild(callout(440,265,560,400,4)); s.appendChild(callout(250,520,160,560,5)); s.appendChild(callout(660,330,720,420,6));
+     s.appendChild(hand(44,48,"'Honoré Laurence combination. 10 ft Browne Airostat Gondleur.' — Fig. 4"));
+   }},
+ { name:'TOMBA', owner:"H. Baumann's Tauba, the dove. Illustration 33, Fig. b. Drawn from his page: no bell.", plate:'III',
+   legend:['Oval, ribbed, pink and gold gores.', 'Fan at the hub, four curved vanes.', 'Chains, hub to rim.', 'Head, a small turret.', 'Carriage, four wheels.', 'Zuppe, on the spine.'],
+   text:["# Head of the page:", "Illustration", "33", "# Beneath the fan, in his hand:", "H. Baumanns", "Tauba", "Fig. b.", "94", "# Note:", "Tauba is Taube, the dove. TOMBA was the roster's hearing of it; the sheet keeps the roster name, the page keeps his."], original:"assets/__paperprints/TOMBA - H. Baumanns .png",
+   estimate:["No measure is given; the carriage is small, and no man is drawn.", "The ribbed oval, at about 6 by 3 metres, holds some 28 cubic metres.", "Lift: about 30 kilograms.", "Verdict: A dove (Tauba), and a message-carrier: a tin box and a note across a valley."],
+   draw:function(s){
+     // Illustration 33, H. Baumanns Tauba, Fig. b: a ribbed oval, pink and green gores, a four-blade fan inside at the hub, chains to the rim, a carriage below. no bell.
+     s.appendChild(el('ellipse',{cx:400,cy:270,rx:250,ry:150,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':2.2}));
+     var gores=['var(--pink)','var(--wash)','var(--gold)','var(--wash)'], gg=el('g',{'clip-path':'url(#taubaclip)'}); s.appendChild(el('clipPath',{id:'taubaclip'},[el('ellipse',{cx:400,cy:270,rx:249,ry:149})]));
+     for(var i=-7;i<=7;i++){ var w=22; gg.appendChild(el('ellipse',{cx:400+i*34,cy:270,rx:w,ry:150,fill:gores[(i+7)%4],stroke:'var(--ink)','stroke-width':.9})); } s.appendChild(gg);
+     s.appendChild(el('ellipse',{cx:400,cy:270,rx:250,ry:150,fill:'url(#gores)'}));
+     s.appendChild(el('ellipse',{cx:400,cy:270,rx:250,ry:150,fill:'none',stroke:'var(--ink)','stroke-width':2.2}));
+     // the fan at the hub: four curved vanes, turning, with its own hoop
+     s.appendChild(el('circle',{cx:400,cy:270,r:118,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6}));
+     var fan=el('g',{'class':'spin',style:'animation-duration:7s'}); for(var k=0;k<4;k++){ var a=k/4*Math.PI*2, c=Math.cos(a), sn=Math.sin(a);
+       var d='M400 270 Q'+(400+c*60-sn*48)+' '+(270+sn*60+c*48)+' '+(400+c*110)+' '+(270+sn*110)+' Q'+(400+c*60+sn*20)+' '+(270+sn*60-c*20)+' 400 270 Z';
+       fan.appendChild(el('path',{d:d,fill:(k%2?'var(--pink)':'var(--gold)'),stroke:'var(--ink)','stroke-width':1})); fan.appendChild(el('path',{d:d,fill:'url(#hatch)'})); }
+     s.appendChild(fan); s.appendChild(el('circle',{cx:400,cy:270,r:12,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.2}));
+     // chains from the hub-hoop to the rim, left and right
+     [[-1,0],[1,0]].forEach(function(v){ s.appendChild(el('line',{x1:400+v[0]*118,y1:270,x2:400+v[0]*250,y2:270,stroke:'var(--ink)','stroke-width':1.4,'stroke-dasharray':'3 3'})); });
+     // the head: a small turret at the top of the oval
+     s.appendChild(el('rect',{x:382,y:112,width:36,height:14,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2}));
+     // the carriage: a spine below, four wheels, and the gear
+     s.appendChild(strut(260,440,540,440,2.4)); s.appendChild(strut(400,420,400,440,2)); [290,360,440,510].forEach(function(x){ s.appendChild(strut(x,440,x,480,1.6)); s.appendChild(wheel(x,496,14)); });
+     s.appendChild(reservoir(400,462,70,16));
+     s.appendChild(callout(560,160,650,110,1)); s.appendChild(callout(470,230,600,330,2)); s.appendChild(callout(330,270,180,380,3)); s.appendChild(callout(400,118,520,80,4)); s.appendChild(callout(290,496,200,540,5)); s.appendChild(callout(436,462,560,500,6));
+     s.appendChild(hand(44,48,"'H. Baumanns Tauba. Fig. b.' — Illustration 33. Tauba is Taube: the dove."));
+   }},
+ { name:'VALVET', owner:"The Jump Spere, from the foot of GOOSE's Page 4. Drawn from his page; VALVET is the roster's name.", plate:'IV',
+   legend:['The rim, copper, with the cloth-tensing hooks.', 'Nitric cloth, blue, hatched.', 'Three sacks, nested, each six inches larger.', 'The rotor at the heart.', 'The feed, from the reservoir.', 'Chains, four, rim to heart.'],
+   text:["# The ring is the Jump Spere, drawn at the foot of GOOSE's page (Page 4):", "Jump Spere", "Jump Spere", "Nitric Cloth Tensing", "From Reservoir", "A Ballon Guide Expasion", "Electrande sensitive Surfare", "(Shackenseys way of Dropping)", "# Note:", "VALVET is the roster's name; it is not on the page."], original:"assets/__paperprints/Valvet - rotus tourbillon .png",
+   estimate:["Not a craft. This is the Jump Spere, drawn at the foot of GOOSE's page.", "Three sacks one above the other, each six inches larger all over: nested spheres, not a disc.", "A Ballon Guide Expasion: the lifting volume, with the rotor inside it.", "Verdict: The sphere reading. Drawn flat it looks like a fan; it is not a fan."],
+   draw:function(s){
+     // the Jump Spere, from the foot of Page 4: a ring in a copper rim with cloth tensing hooks round it; three nested spheres inside, hatched; the rotor at the heart; a feed stalk from the reservoir at the right.
+     s.appendChild(el('circle',{cx:380,cy:300,r:220,fill:'var(--wash)',stroke:'#c8906c','stroke-width':6})); s.appendChild(el('circle',{cx:380,cy:300,r:220,fill:'url(#stipple)'}));
+     for(var k=0;k<12;k++){ var a=k/12*Math.PI*2; var x=380+Math.cos(a)*205, y=300+Math.sin(a)*205; s.appendChild(el('path',{d:'M'+(x-8)+' '+y+' Q'+x+' '+(y-14)+' '+(x+8)+' '+y,fill:'none',stroke:'var(--ink)','stroke-width':2.2,transform:'rotate('+(k*30+90)+' '+x+' '+y+')'})); }
+     s.appendChild(el('circle',{cx:380,cy:300,r:150,fill:'var(--blue)',stroke:'#c8906c','stroke-width':4})); s.appendChild(el('circle',{cx:380,cy:300,r:150,fill:'url(#hatch)'}));
+     // the three sacks, nested, each six inches larger all over
+     [150,120,90].forEach(function(r,i){ s.appendChild(el('circle',{cx:380,cy:300,r:r,fill:'none',stroke:'var(--ink)','stroke-width':1.2,'stroke-dasharray':i?'4 3':'none'})); });
+     // the rotor at the heart: six curved vanes, turning, in its own white disc
+     var rot=el('g',{'class':'spin',style:'animation-duration:6s'}); for(var k=0;k<6;k++){ var a=k/6*Math.PI*2; rot.appendChild(el('path',{d:'M380 300 Q'+(380+Math.cos(a)*60-Math.sin(a)*40)+' '+(300+Math.sin(a)*60+Math.cos(a)*40)+' '+(380+Math.cos(a)*118)+' '+(300+Math.sin(a)*118),fill:'none',stroke:'var(--ink)','stroke-width':2.2})); } s.appendChild(rot);
+     s.appendChild(el('circle',{cx:380,cy:300,r:48,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.4})); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; s.appendChild(el('line',{x1:380,y1:300,x2:380+Math.cos(a)*48,y2:300+Math.sin(a)*48,stroke:'var(--ink)','stroke-width':.8})); } s.appendChild(el('circle',{cx:380,cy:300,r:7,fill:'var(--ink)'}));
+     // the four chains from the rim to the inner sphere
+     for(var k=0;k<4;k++){ var a=k/4*Math.PI*2+Math.PI/4; s.appendChild(el('line',{x1:380+Math.cos(a)*150,y1:300+Math.sin(a)*150,x2:380+Math.cos(a)*48,y2:300+Math.sin(a)*48,stroke:'var(--ink)','stroke-width':1.4,'stroke-dasharray':'3 2'})); }
+     // the feed from the reservoir, at the right
+     s.appendChild(strut(520,300,740,250,5)); s.appendChild(el('path',{d:'M520 290 L540 300 L520 310 Z',fill:'#c8906c',stroke:'var(--ink)','stroke-width':1}));
+     s.appendChild(callout(380,86,480,50,1)); s.appendChild(callout(530,300,620,420,2)); s.appendChild(callout(470,210,620,120,3)); s.appendChild(callout(410,300,560,520,4)); s.appendChild(callout(690,262,700,180,5)); s.appendChild(callout(290,390,180,520,6));
+     s.appendChild(hand(44,48,"'Tree Sacks one above the other, fastened to Rim of Jumping Spere.' — Page 4"));
+   }},
+ { name:'RIDEME', owner:"Prof. Karl Nitschke's Airostat, Rideme. Page 25, Fig 1. Drawn from his page.", plate:'V',
+   legend:['The disc, hatched, on eight spokes.', 'Cells, two, at the shoulders.', 'Mast, hollow; the pilot rides it.', 'Side fans, two, on booms.', 'The car, pear-shaped, with a lens.', 'Legs, two, with bells.'],
+   text:["# Head:", "Page 25.", "# Lower right:", "Prof", "Karl Nitschkes.", "Airostat.", "‘Rideme’", "Fig 1."], original:"assets/__paperprints/Prof Karl Nitshkes airostat RIDEME .png",
+   estimate:["No measure is given; the disc is the page's width, and the man rides the mast.", "If the disc is a volume, a sphere of 8 metres holds about 270 cubic metres.", "Lift: about 300 kilograms. Weight, man and frame: about 150.", "Verdict: She rises, on the sphere reading. His word on the page is Airostat, standing in air, which is the balloon's word."],
+   draw:function(s){
+     // Page 25, Fig 1: a great hatched disc on spokes, two cells at the shoulders, a hollow mast, two side-fans on booms, a pear-shaped car with a lens, two legs with bells.
+     s.appendChild(el('circle',{cx:400,cy:230,r:180,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':2.4})); s.appendChild(el('circle',{cx:400,cy:230,r:180,fill:'url(#hatch)'}));
+     var spokes=el('g',{'class':'spin',style:'animation-duration:14s'}); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; spokes.appendChild(el('line',{x1:400,y1:230,x2:400+Math.cos(a)*180,y2:230+Math.sin(a)*180,stroke:'var(--ink)','stroke-width':1.6})); } s.appendChild(spokes);
+     s.appendChild(el('circle',{cx:400,cy:230,r:120,fill:'none',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('circle',{cx:400,cy:230,r:14,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.2}));
+     [[215,120,-0.5],[585,120,0.5]].forEach(function(c){ s.appendChild(el('g',{transform:'rotate('+(c[2]*30)+' '+c[0]+' '+c[1]+')'},[el('rect',{x:c[0]-50,y:c[1]-28,width:100,height:56,rx:14,fill:'var(--pink)',stroke:'var(--ink)','stroke-width':1.6}),el('rect',{x:c[0]-50,y:c[1]-28,width:100,height:56,rx:14,fill:'url(#stipple)'})])); });
+     s.appendChild(strut(400,50,400,470,4));
+     // side fans on booms, hatched discs
+     [[150,440,1],[650,440,-1]].forEach(function(b){ s.appendChild(strut(400,380,b[0],b[1],2.4)); s.appendChild(el('circle',{cx:b[0],cy:b[1],r:48,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('circle',{cx:b[0],cy:b[1],r:48,fill:'url(#hatch)'})); var f=el('g',{'class':'spin',style:'animation-duration:4s;animation-name:'+(b[2]>0?'spin':'spinback')}); for(var k=0;k<4;k++){ var a=k/4*Math.PI*2; f.appendChild(el('path',{d:'M'+b[0]+' '+b[1]+' Q'+(b[0]+Math.cos(a)*24-Math.sin(a)*14)+' '+(b[1]+Math.sin(a)*24+Math.cos(a)*14)+' '+(b[0]+Math.cos(a)*44)+' '+(b[1]+Math.sin(a)*44)+' Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':.9})); } s.appendChild(f); });
+     // the car: pear-shaped, pink, with a lens and the saddle above
+     s.appendChild(el('path',{d:'M400 380 Q470 380 480 450 Q480 520 400 530 Q320 520 320 450 Q330 380 400 380 Z',fill:'var(--pink)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('path',{d:'M400 380 Q470 380 480 450 Q480 520 400 530 Q320 520 320 450 Q330 380 400 380 Z',fill:'url(#stipple)'}));
+     s.appendChild(el('ellipse',{cx:400,cy:455,rx:36,ry:12,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.2}));
+     s.appendChild(pilot(400,360,1.3));
+     [[340,540],[460,540]].forEach(function(p){ s.appendChild(strut(p[0],530,p[0],570,1.6)); s.appendChild(el('path',{d:'M'+(p[0]-10)+' 570 L'+(p[0]+10)+' 570 L'+(p[0]+6)+' 590 L'+(p[0]-6)+' 590 Z',fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1})); });
+     s.appendChild(callout(560,160,660,100,1)); s.appendChild(callout(585,120,700,60,2)); s.appendChild(callout(400,100,500,40,3)); s.appendChild(callout(150,440,80,520,4)); s.appendChild(callout(470,470,580,500,5)); s.appendChild(callout(340,580,240,590,6));
+     s.appendChild(hand(44,48,"'Prof Karl Nitschkes Airostat, Rideme. Fig 1.' — Page 25"));
+   }},
+ { name:'LOMMINGDON', owner:"Pg V: comming down on Falleasy. Drawn from his page; the name is the roster's.", plate:'VI',
+   legend:['The chute, folded on the mast.', 'Side-cells, two, each with a caged fan.', 'Basket, wicker, crossed.', 'Pilot, bearded, in his hat.', 'Lines, three, to the sledge.', 'Sledge, three wheels.'],
+   text:["# Right:", "Pg V.", "comming down", "on", "Falleasy.", "# Note:", "The name LOMMINGDON is the roster's; it is not on this page."], original:"assets/__paperprints/LOMMINGDON - Falleasy type .png",
+   estimate:["His words: Pg V, comming down on Falleasy.", "The chute on the mast is about 20 square metres; the cells beside the basket are small.", "Verdict: Not a lifter. A man brought down at about six metres a second, which is survivable. The page says what she is for."],
+   draw:function(s){
+     // Pg V: a wide frame like a yoke; two side-cells with small fans caged in them; a wicker basket with a bearded man in a hat; the chute folded on the mast; lines to a wheeled sledge.
+     s.appendChild(el('path',{d:'M110 220 Q110 150 190 150 L330 150 Q400 150 400 110 Q400 150 470 150 L610 150 Q690 150 690 220',fill:'none',stroke:'var(--ink)','stroke-width':3}));
+     [[150,230],[650,230]].forEach(function(c){ s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:70,ry:95,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:70,ry:95,fill:'url(#stipple)'}));
+       s.appendChild(el('circle',{cx:c[0],cy:c[1]-20,r:38,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.4})); var f=el('g',{'class':'spin',style:'animation-duration:4s'}); for(var k=0;k<6;k++){ var a=k/6*Math.PI*2; f.appendChild(el('path',{d:'M'+c[0]+' '+(c[1]-20)+' L'+(c[0]+Math.cos(a)*34)+' '+(c[1]-20+Math.sin(a)*34)+' L'+(c[0]+Math.cos(a+0.5)*34)+' '+(c[1]-20+Math.sin(a+0.5)*34)+' Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':.8})); } s.appendChild(f); });
+     s.appendChild(strut(220,250,580,250,2.4));
+     // the mast with the chute folded above it
+     s.appendChild(strut(400,110,400,250,2.4)); for(var m=-3;m<=3;m++) s.appendChild(el('path',{d:'M400 110 Q'+(400+m*12)+' 60 '+(400+m*10)+' 20',fill:'none',stroke:'var(--ink)','stroke-width':1.4}));
+     // the wicker basket, crossed, and the man
+     s.appendChild(el('path',{d:'M300 250 L500 250 Q500 380 400 400 Q300 380 300 250 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('path',{d:'M300 250 L500 250 Q500 380 400 400 Q300 380 300 250 Z',fill:'url(#xhatch)'}));
+     s.appendChild(pilot(400,228,1.5,'bowler'));
+     // lines to the sledge
+     [[330,520],[400,520],[470,520]].forEach(function(p){ s.appendChild(el('line',{x1:400,y1:400,x2:p[0],y2:p[1],stroke:'var(--ink)','stroke-width':1.2})); });
+     s.appendChild(strut(280,520,520,520,3)); [300,400,500].forEach(function(x){ s.appendChild(wheel(x,540,14)); });
+     s.appendChild(callout(400,40,520,40,1)); s.appendChild(callout(150,210,70,130,2)); s.appendChild(callout(400,300,560,330,3)); s.appendChild(callout(410,228,520,200,4)); s.appendChild(callout(440,460,580,470,5)); s.appendChild(callout(300,540,200,570,6));
+     s.appendChild(hand(44,48,"'Pg V. comming down on Falleasy.' — his whole text for the page"));
+   }},
+ { name:'MAYDEW', owner:"Prof. Carolus on Otto Krause: ‘may doo try me’. Drawn from his page.", plate:'VII',
+   legend:['The Gliding Keel, blue, with a red hoop.', 'Cells, two, red, at the ends.', 'Centre disc, hatched, in a red hoop, with a dome.', 'Side fans, two, gold and pink, on booms.', 'The red light on the dome.', 'Lattice car beneath, on five wheels.'],
+   text:["# On the keel:", "Gliding Keel", "Gliding Keel", "# Beneath the drawing:", "Prof Carolus on Otto Krause", "‘may doo try me’"], original:"assets/__paperprints/MAY DOO TRY ME - Prof. Iarolus on Otto Krause .png",
+   estimate:["No measure is given; four discs, two large and two small, over the Gliding Keel.", "If the discs are spheres, about 90 cubic metres in all.", "Lift: about 100 kilograms. Weight, two men and iron: about 250.", "Verdict: She cannot lift herself. A gas-lightened glider launched from height; the keel says Gliding, and means it."],
+   draw:function(s){
+     // Recolections part 2: a long blue Gliding Keel with a red hoop and a hatched disc at its centre, two cells at the ends, two side-fans (one gold, one pink, lower), a lattice car beneath, wheels on the keel.
+     s.appendChild(el('path',{d:'M60 300 Q400 230 740 300 Q400 370 60 300 Z',fill:'var(--blue)',stroke:'var(--ink)','stroke-width':2})); s.appendChild(el('path',{d:'M60 300 Q400 230 740 300 Q400 370 60 300 Z',fill:'url(#gores)'}));
+     s.appendChild(el('line',{x1:60,y1:300,x2:740,y2:300,stroke:'var(--red)','stroke-width':2.4}));
+     [[130,300],[670,300]].forEach(function(c){ s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:50,ry:60,fill:'var(--red)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:50,ry:60,fill:'url(#hatch)'})); });
+     // the centre disc, hatched, in a red hoop, with the dome above
+     s.appendChild(el('circle',{cx:400,cy:300,r:70,fill:'var(--wash)',stroke:'var(--red)','stroke-width':3})); s.appendChild(el('circle',{cx:400,cy:300,r:70,fill:'url(#xhatch)'})); s.appendChild(el('line',{x1:330,y1:300,x2:470,y2:300,stroke:'var(--red)','stroke-width':2})); s.appendChild(el('line',{x1:400,y1:230,x2:400,y2:370,stroke:'var(--red)','stroke-width':2}));
+     s.appendChild(el('path',{d:'M360 236 Q400 190 440 236',fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('circle',{cx:400,cy:208,r:5,fill:'var(--red)'}));
+     // two side fans, on tilted booms: gold left, pink right and lower
+     [[230,170,'var(--gold)',1],[590,210,'var(--pink)',-1]].forEach(function(f){ s.appendChild(strut(400,300,f[0],f[1],2)); s.appendChild(el('circle',{cx:f[0],cy:f[1],r:80,fill:f[2],stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('circle',{cx:f[0],cy:f[1],r:80,fill:'url(#hatch)'}));
+       var g=el('g',{'class':'spin',style:'animation-duration:8s;animation-name:'+(f[3]>0?'spin':'spinback')}); for(var k=0;k<12;k++){ var a=k/12*Math.PI*2; g.appendChild(el('line',{x1:f[0],y1:f[1],x2:f[0]+Math.cos(a)*78,y2:f[1]+Math.sin(a)*78,stroke:'var(--ink)','stroke-width':1})); } s.appendChild(g); s.appendChild(el('circle',{cx:f[0],cy:f[1],r:30,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('circle',{cx:f[0],cy:f[1],r:30,fill:'url(#xhatch)'})); });
+     // the lattice car below the keel, and wheels
+     s.appendChild(gondola(400,420,150,70,'cage')); s.appendChild(el('rect',{x:325,y:455,width:150,height:14,fill:'var(--gold)',stroke:'var(--ink)','stroke-width':1}));
+     [150,260,400,540,650].forEach(function(x){ s.appendChild(wheel(x,500,14)); s.appendChild(strut(x,370,x,486,1.2)); });
+     s.appendChild(callout(600,300,700,420,1)); s.appendChild(callout(130,300,60,200,2)); s.appendChild(callout(440,300,540,520,3)); s.appendChild(callout(230,170,120,80,4)); s.appendChild(callout(400,208,520,160,5)); s.appendChild(callout(400,440,250,560,6));
+     s.appendChild(hand(44,48,"'Prof Carolus on Otto Krause: may doo try me.' — beneath the drawing"));
+   }},
+ { name:'HONORÉ LAURENT', owner:"Ed. Hermsdorph's, Illus. 44, on sky-blue: Luftschiff Flügel. Drawn from his page.", plate:'VIII',
+   legend:['Cells, two, long, ribbed.', 'Rotors, four-leaf, two, stacked on the keel.', 'The hub, on the lattice keel.', 'Boats, two, at either end.', 'Tents, top and bottom.', 'The dove, bearing the name.'],
+   text:["# Top left:", "Illus 44.", "# Top right, in the cloud:", "John Lang und Co.", "[Schwan] [Teodor] Braun", "Dyzelline", "# Lower left, on the dove:", "Honoré Laurent", "Luftschiff Flügel", "[…]", "# Lower right:", "Ed. Hermsdorph.", "Serie fig 6. macht A.", "# Corner:", "89"], original:"assets/__paperprints/HONORE LAURENT - Ed Hermsdorph's Decalift .png",
+   estimate:["His words: Luftschiff Flügel, airship wing; Illus. 44.", "Two long cells of about 12 by 2.5 metres hold some 120 cubic metres.", "Lift: about 130 kilograms, which is one man and a light frame, with nothing over.", "Verdict: Lifting bodies, not spheres. A glider with gas in its wings; she would have flown a little, and badly."],
+   draw:function(s){
+     // Illus. 44, on sky-blue: two long ribbed cells, two four-leaf rotors stacked on the centreline, a lattice keel between with the hub, pointed boats at either end, two tent-canopies top and bottom, a dove with the name.
+     // the page: a brown hatched border, and the sky inside it, as a tincture the lamps may turn
+     s.appendChild(el('rect',{x:30,y:30,width:740,height:540,fill:'#c8a37a',stroke:'none'})); s.appendChild(el('rect',{x:30,y:30,width:740,height:540,fill:'url(#xhatch)'}));
+     s.appendChild(el('rect',{x:72,y:72,width:656,height:456,fill:'var(--sky)',stroke:'var(--ink)','stroke-width':1.4}));
+     for(var i=0;i<2;i++){ var y=i?400:200; s.appendChild(el('ellipse',{cx:400,cy:y,rx:280,ry:62,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.8})); for(var r=-11;r<=11;r++) s.appendChild(el('ellipse',{cx:400,cy:y,rx:Math.max(8,280-Math.abs(r)*25),ry:62,fill:'none',stroke:'var(--ink)','stroke-width':.7})); }
+     // the keel: a lattice bar down the centre, with the hub
+     s.appendChild(el('rect',{x:382,y:120,width:36,height:360,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('rect',{x:382,y:120,width:36,height:360,fill:'url(#xhatch)'}));
+     s.appendChild(el('circle',{cx:400,cy:300,r:22,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('circle',{cx:400,cy:300,r:6,fill:'var(--ink)'}));
+     // two four-leaf rotors, stacked, turning opposite ways
+     [[200,1],[400,-1]].forEach(function(r){ s.appendChild(el('circle',{cx:400,cy:r[0],r:70,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.6})); var g=el('g',{'class':'spin',style:'animation-duration:9s;animation-name:'+(r[1]>0?'spin':'spinback')}); for(var k=0;k<4;k++){ var a=k/4*Math.PI*2+Math.PI/4; g.appendChild(el('path',{d:'M400 '+r[0]+' Q'+(400+Math.cos(a-0.6)*60)+' '+(r[0]+Math.sin(a-0.6)*60)+' '+(400+Math.cos(a)*64)+' '+(r[0]+Math.sin(a)*64)+' Q'+(400+Math.cos(a+0.6)*60)+' '+(r[0]+Math.sin(a+0.6)*60)+' 400 '+r[0]+' Z',fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.1})); } s.appendChild(g); });
+     // boats at either end on the long axis
+     [[90,300,1],[710,300,-1]].forEach(function(b){ s.appendChild(el('path',{d:'M'+b[0]+' '+b[1]+' L'+(b[0]+b[2]*90)+' '+(b[1]-22)+' L'+(b[0]+b[2]*190)+' '+(b[1]-18)+' L'+(b[0]+b[2]*190)+' '+(b[1]+18)+' L'+(b[0]+b[2]*90)+' '+(b[1]+22)+' Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('path',{d:'M'+b[0]+' '+b[1]+' L'+(b[0]+b[2]*90)+' '+(b[1]-22)+' L'+(b[0]+b[2]*190)+' '+(b[1]-18)+' L'+(b[0]+b[2]*190)+' '+(b[1]+18)+' L'+(b[0]+b[2]*90)+' '+(b[1]+22)+' Z',fill:'url(#xhatch)'})); s.appendChild(el('line',{x1:b[0]+b[2]*190,y1:b[1],x2:400,y2:b[1],stroke:'var(--ink)','stroke-width':1.4})); });
+     // the two tents, top and bottom
+     s.appendChild(el('path',{d:'M400 40 L360 120 L440 120 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('path',{d:'M400 40 L360 120 L440 120 Z',fill:'url(#hatch)'}));
+     s.appendChild(el('path',{d:'M400 560 L360 480 L440 480 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('path',{d:'M400 560 L360 480 L440 480 Z',fill:'url(#hatch)'}));
+     // the dove, lower left, bearing the name
+     s.appendChild(el('path',{d:'M70 520 Q110 470 170 500 Q150 520 190 520 Q140 560 90 540 Z',fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.2}));
+     s.appendChild(callout(640,200,700,120,1)); s.appendChild(callout(400,130,500,70,2)); s.appendChild(callout(418,300,540,300,3)); s.appendChild(callout(640,300,700,420,4)); s.appendChild(callout(400,500,300,560,5)); s.appendChild(callout(130,520,220,590,6));
+     s.appendChild(hand(44,48,"'Honoré Laurent, Luftschiff Flügel.' — on the dove, Illus. 44"));
+   }},
+ { name:'GOOSE with Fallease', owner:"Moover and Steady, Page 4. Drawn from his page: no neck, no head, no beak.", plate:'IX',
+   legend:['Cells, two, ribbed, as a breast.', 'Fan in a hoop, six blades.', 'Mast, with its tuft.', 'Pilot, in his hat.', 'Basket, wicker, crossed.', 'Sledge, three wheels.'],
+   text:["# Head:", "Page 4.", "# Beneath the craft:", "‘Goose’", "C. Fallease", "D. Moover and Steady", "# The column, right of the craft, as far as it reads:", "Peter Mennis Liftpower Generator or Electrande for Goose.", "‘Keep Fire away’ say she cant stand it.", "Delivery only in Drops as needed. to get the greatest Amount of Power from the least Quantity of Chemical Fluid carried in the Reservoir.", "Dropping of Chemical [—] the propper [shaking] of the Reservoir. the Electrande will eat the Drops as of Water falling on red hot Iron, and will therefore proppely give the Chemical Action needed to create the lifting Power, as P. Mennis styled by ‘Explosion’ when moderately applied.", "[…] of his Compound is all that ever any Friend of his found out about the Material or Components of the Chemical Fluid, or the inner Contents of the Electrande, or the Construction of the Metal Plates [—] to gather and expand the Surface and release what it […]", "# On the Jump Spere, drawn at the foot:", "Jump Spere", "Jump Spere", "Nitric Cloth Tensing", "From Reservoir", "A Ballon Guide Expasion", "Electrande sensitive Surfare", "(Shackenseys way of Dropping)", "# Beneath:", "Tree Sacks one above the other, fastened to Rim of Jumping Spere. one 6 inches larger all over as next on inside one, one in over the other. to so break the Strain […]"], original:"assets/__paperprints/GOOSE and Reservoir connection .png",
+   estimate:["His words: ‘Goose’, C. Fallease, D. Moover and Steady; Page 4.", "Two cells, each twice the man's height, hold about 12 cubic metres together.", "Lift: about 13 kilograms, which is less than her own sledge and basket.", "Verdict: She cannot lift herself. She is Fallease: a chute, with gas to lighten the landing. The name was honest."],
+   draw:function(s){
+     // Page 4: two ribbed cells like a breast, a fan between them in a hoop, a man in a hat in a wicker basket, wheels on a sledge. no neck.
+     [[200,250],[600,250]].forEach(function(c){ s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:72,ry:120,fill:'var(--pink)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:72,ry:120,fill:'url(#gores)'}));
+       for(var i=-3;i<=3;i++) s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:Math.max(4,72-Math.abs(i)*22),ry:120,fill:'none',stroke:'var(--ink)','stroke-width':.7})); });
+     s.appendChild(strut(200,130,600,130,2.4)); s.appendChild(strut(200,370,600,370,2.4));
+     s.appendChild(el('circle',{cx:400,cy:250,r:92,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':2.2}));
+     var fan=el('g',{'class':'spin',style:'animation-duration:5s'}); for(var k=0;k<6;k++){ var a=k/6*Math.PI*2, c=Math.cos(a), sn=Math.sin(a);
+       var d='M400 250 Q'+(400+c*50-sn*28)+' '+(250+sn*50+c*28)+' '+(400+c*84)+' '+(250+sn*84)+' Q'+(400+c*50+sn*28)+' '+(250+sn*50-c*28)+' 400 250 Z';
+       fan.appendChild(el('path',{d:d,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1})); fan.appendChild(el('path',{d:d,fill:'url(#hatch)'})); }
+     s.appendChild(fan); s.appendChild(el('circle',{cx:400,cy:250,r:10,fill:'var(--ink)'}));
+     s.appendChild(strut(400,30,400,158,3)); for(var m=-2;m<=2;m++) s.appendChild(el('line',{x1:400,y1:30,x2:400+m*8,y2:6,stroke:'var(--red)','stroke-width':2}));
+     s.appendChild(el('path',{d:'M300 380 L500 380 L470 500 Q400 520 330 500 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('path',{d:'M300 380 L500 380 L470 500 Q400 520 330 500 Z',fill:'url(#xhatch)'}));
+     s.appendChild(pilot(400,392,1.6,'bowler'));
+     s.appendChild(strut(260,540,540,540,3)); [300,400,500].forEach(function(x){ s.appendChild(strut(x,510,x,540,1.6)); s.appendChild(wheel(x,556,16)); });
+     s.appendChild(callout(200,140,110,90,1)); s.appendChild(callout(470,230,560,180,2)); s.appendChild(callout(400,40,500,40,3)); s.appendChild(callout(410,350,540,330,4)); s.appendChild(callout(330,460,230,470,5)); s.appendChild(callout(300,556,200,580,6));
+     s.appendChild(hand(44,48,"'Keep Fire away, say she cant stand it.' — Peter Mennis, Page 4"));
+   }},
+ { name:'DOOBELY', owner:"Eduard Hermsdorf's. 1857 and 1899; finis, Jan. 12th 1900. Drawn from his page.", plate:'X',
+   legend:['The bell-end, lettered DOOBELY.', 'Wheelhouse, with the man at the wheel.', 'The plate: SONORA CALIFORNIA.', 'The hull, ribbed, silver.', 'The fore plate, BRO WAY.', 'Wheels, small, beneath.'],
+   text:["# On the craft:", "BRO WAY.", "DOOBELY", "SONORA CALIFORNIA", "EDUARD HERMSDORF", "# Lower right, in his hand:", "Eduard Hermsdorfs", "Doobely", "{ 1857. / 1899. }", "# Foot:", "[Jan] 12th 1900. finis."], original:"assets/__paperprints/DOOBELY - Edward Hermdorf .png",
+   estimate:["His words: Sonora California; Eduard Hermsdorf; 1857 and 1899; finis, January 1900.", "A cylinder of about 15 by 3 metres holds some 100 cubic metres.", "Lift: about 110 kilograms. The gilt cabin alone weighs more.", "Verdict: A ship in the sense of a ship, with her port painted on. She does not fly. She was drawn with the most love of any."],
+   draw:function(s){
+     // the Sonora California page: a long ribbed cylinder hull seen from the quarter, a bell-end lettered DOOBELY, a wheelhouse with a man in a hat at the wheel, a round plate SONORA CALIFORNIA, hoops, small wheels beneath.
+     s.appendChild(el('path',{d:'M90 360 L600 300 Q690 290 700 340 Q700 400 610 410 L100 440 Q50 430 50 400 Q50 370 90 360 Z',fill:'#c9cdd2',stroke:'var(--ink)','stroke-width':2}));
+     for(var i=0;i<12;i++){ var x=120+i*44; s.appendChild(el('path',{d:'M'+x+' '+(356-i*5)+' Q'+(x+6)+' '+(395-i*5)+' '+(x+2)+' '+(436-i*5),fill:'none',stroke:'var(--ink)','stroke-width':.9})); }
+     // the bell-end, lettered
+     s.appendChild(el('path',{d:'M560 140 Q700 130 720 230 Q720 330 620 340 L560 300 Z',fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('path',{d:'M560 140 Q700 130 720 230 Q720 330 620 340 L560 300 Z',fill:'url(#gores)'}));
+     s.appendChild(txt(650,245,'DOOBELY',{'text-anchor':'middle','font-size':22,'font-style':'italic','font-weight':'700',fill:'var(--paper)',transform:'rotate(-14 650 245)'}));
+     // the wheelhouse amidships and the man at the wheel
+     s.appendChild(el('rect',{x:300,y:200,width:120,height:110,rx:10,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('rect',{x:300,y:200,width:120,height:110,rx:10,fill:'url(#xhatch)'}));
+     s.appendChild(pilot(360,222,1.6,'bowler')); var w=el('g',{transform:'translate(400 280)'}), ws=el('g',{'class':'nod',style:'animation-duration:5s'}); ws.appendChild(el('circle',{r:18,fill:'none',stroke:'var(--ink)','stroke-width':2})); for(var k=0;k<4;k++){ var a=k/4*Math.PI; ws.appendChild(el('line',{x1:-Math.cos(a)*18,y1:-Math.sin(a)*18,x2:Math.cos(a)*18,y2:Math.sin(a)*18,stroke:'var(--ink)','stroke-width':1.2})); } w.appendChild(ws); s.appendChild(w);
+     // the round plate: SONORA CALIFORNIA
+     s.appendChild(el('circle',{cx:240,cy:400,r:52,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('circle',{cx:240,cy:400,r:44,fill:'none',stroke:'var(--ink)','stroke-width':.8}));
+     s.appendChild(txt(240,386,'SONORA',{'text-anchor':'middle','font-size':11,'font-weight':'700'})); s.appendChild(txt(240,422,'CALIFORNIA',{'text-anchor':'middle','font-size':9,'font-weight':'700'})); s.appendChild(el('circle',{cx:240,cy:402,r:6,fill:'var(--red)'}));
+     // the fore plate BRO WAY and a port-light
+     s.appendChild(el('circle',{cx:110,cy:300,r:30,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(txt(110,304,'BRO WAY',{'text-anchor':'middle','font-size':7,'font-weight':'700',fill:'var(--paper)'}));
+     // small wheels beneath
+     [160,330,500,640].forEach(function(x,i){ s.appendChild(wheel(x,470-i*6,12)); });
+     s.appendChild(callout(650,200,720,100,1)); s.appendChild(callout(360,260,480,160,2)); s.appendChild(callout(240,400,160,520,3)); s.appendChild(callout(400,400,540,520,4)); s.appendChild(callout(110,300,70,200,5)); s.appendChild(callout(330,470,280,560,6));
+     s.appendChild(hand(44,48,"'Eduard Hermsdorfs Doobely. 1857, 1899. finis.' — Jan 12th 1900"));
+   }},
+ { name:'CAAD', owner:"Signed C A A D: his own initials. Drawn from his page. The one that is only coming down.", plate:'XI',
+   legend:['A star.', 'The car: two caged fans over a basket.', 'A man in the basket, in his hat.', 'A man descending the rope ladder, in a suit.', 'The ladder, to its foot.', 'A crescent, washed pink.'],
+   text:["# The page has almost no writing:", "A star, a crescent, a man descending a rope ladder from a basket under two fans.", "# Lower left:", "[Fig.] IV.", "# Lower right:", "C A A D", "# Note:", "C.A.A.D. are his own initials, Charles August Albert Dellschau; he signs the SATURNUS page with them too."], original:"assets/__paperprints/CAAD falleasy .png",
+   estimate:["Not a craft: a star, a crescent, and a man on a rope ladder under two fans.", "The fans are the Jump Speres, seen edge-on.", "Verdict: A picture of coming down, signed with his own initials."],
+   draw:function(s){
+     // the CAAD page: a star and a crescent on a washed sky; a basket under two caged fans with a man in it; a rope ladder down, a man descending in a suit; the ladder's foot.
+     s.appendChild(el('path',{d:'M120 160 L132 192 L166 194 L139 214 L148 248 L120 228 L92 248 L101 214 L74 194 L108 192 Z',fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.2}));
+     s.appendChild(el('path',{d:'M330 160 A170 170 0 1 0 330 480 A130 150 0 1 1 330 160 Z',fill:'var(--pink)',stroke:'var(--ink)','stroke-width':1.4,opacity:.6}));
+     // the car: two caged fans over a wicker basket, a man in it
+     [[340,120],[460,120]].forEach(function(c){ s.appendChild(el('circle',{cx:c[0],cy:c[1],r:46,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('circle',{cx:c[0],cy:c[1],r:46,fill:'url(#hatch)'})); var f=el('g',{'class':'spin',style:'animation-duration:4s'}); for(var k=0;k<3;k++){ var a=k/3*Math.PI*2; f.appendChild(el('path',{d:'M'+c[0]+' '+c[1]+' L'+(c[0]+Math.cos(a)*42)+' '+(c[1]+Math.sin(a)*42)+' L'+(c[0]+Math.cos(a+0.7)*42)+' '+(c[1]+Math.sin(a+0.7)*42)+' Z',fill:'var(--paper)',stroke:'var(--ink)','stroke-width':.9})); } s.appendChild(f); });
+     s.appendChild(strut(400,60,400,170,3)); s.appendChild(strut(340,166,460,166,2));
+     s.appendChild(el('path',{d:'M350 170 L450 170 Q450 240 400 250 Q350 240 350 170 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('path',{d:'M350 170 L450 170 Q450 240 400 250 Q350 240 350 170 Z',fill:'url(#xhatch)'}));
+     s.appendChild(pilot(400,148,1.2,'bowler'));
+     // the rope ladder, and the man descending it
+     for(var y=250;y<=560;y+=22){ s.appendChild(el('line',{x1:380,y1:y,x2:420,y2:y,stroke:'var(--ink)','stroke-width':1.4})); }
+     s.appendChild(el('line',{x1:380,y1:250,x2:380,y2:570,stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('line',{x1:420,y1:250,x2:420,y2:570,stroke:'var(--ink)','stroke-width':1.6}));
+     var man=el('g',{transform:'translate(400 400)'}); man.appendChild(el('circle',{cx:0,cy:-30,r:9,fill:'var(--pink)',stroke:'var(--ink)','stroke-width':1})); man.appendChild(el('path',{d:'M-12 -20 L12 -20 L10 20 L-10 20 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2})); man.appendChild(el('path',{d:'M-12 -16 L-30 -34 M12 -16 L30 -34 M-8 20 L-14 48 M8 20 L14 48',fill:'none',stroke:'var(--ink)','stroke-width':3,'stroke-linecap':'round'})); s.appendChild(man);
+     s.appendChild(callout(120,200,80,120,1)); s.appendChild(callout(460,120,600,80,2)); s.appendChild(callout(440,210,560,220,3)); s.appendChild(callout(420,400,560,400,4)); s.appendChild(callout(400,550,540,560,5)); s.appendChild(callout(300,300,220,330,6));
+     s.appendChild(hand(44,48,"'C A A D.' — his own initials, lower right; the page has no other words"));
+   }},
+ { name:'AIROSTANT, restrained', owner:"Mr Jonas Rockstraw's Airostant, Page 35, Fig 2: A to A as long again as the diagram shows. Drawn from his page.", plate:'XII',
+   legend:['The dome, a cage, purpure.', 'Lifters, two, on hooks inside.', 'Shoulder cells, two, with cages.', 'Two men on the platform, hands on the lever.', 'Wheels, two, large.', 'The sledge, pointed, and the weight below.'],
+   text:["# Head:", "Page 35", "# Beside the craft:", "Fig 2.", "N.B. A.—A. as long again as Diagram shows.", "# Foot:", "Mr Jonas Rockstraws", "Airostant", "acording to his", "Description outlined", "[…]", "# Note:", "Airostant, with the n, is his spelling on this page; Airostat on others. Both are his."], original:"assets/__paperprints/Jonas Rackstraw's AIROSTANT .jpg",
+   estimate:["His note: A to A is as long again as the diagram shows; Page 35.", "A domed cage, skinned, holds about 40 cubic metres; doubled, about 80.", "Lift: about 90 kilograms. Weight, two men and an iron frame: more.", "Verdict: She stays on the ground. The restraints the roster gave her were right by accident."],
+   draw:function(s){
+     // Page 35, Fig 2: a domed cage, two lifters hung on hooks inside, two small cells at the shoulders, two men on a platform with their hands on the lever, a chamber behind, two wheels, a sledge with pointed ends, a weight below.
+     s.appendChild(el('path',{d:'M180 330 Q180 90 400 90 Q620 90 620 330 Z',fill:'none',stroke:'var(--ink)','stroke-width':2.4}));
+     s.appendChild(el('path',{d:'M180 330 Q180 90 400 90 Q620 90 620 330 Z',fill:'#d8c8e6',opacity:.25}));
+     for(var r=1;r<4;r++){ s.appendChild(el('path',{d:'M'+(180+r*40)+' 330 Q'+(180+r*40)+' '+(90+r*45)+' 400 '+(90+r*45)+' Q'+(620-r*40)+' '+(90+r*45)+' '+(620-r*40)+' 330',fill:'none',stroke:'var(--ink)','stroke-width':.7})); }
+     // two lifters on hooks inside the dome
+     [[300,150],[500,150]].forEach(function(h){ s.appendChild(el('line',{x1:h[0],y1:h[1]-50,x2:h[0],y2:h[1],stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('path',{d:'M'+(h[0]-14)+' '+h[1]+' L'+h[0]+' '+(h[1]-22)+' L'+(h[0]+14)+' '+h[1]+' L'+h[0]+' '+(h[1]+22)+' Z',fill:'#d8c8e6',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('rect',{x:h[0]-22,y:h[1]+26,width:44,height:8,fill:'var(--ink)'})); });
+     // the central chamber, tall, stippled
+     s.appendChild(el('rect',{x:372,y:140,width:56,height:130,rx:10,fill:'#d8c8e6',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('rect',{x:372,y:140,width:56,height:130,rx:10,fill:'url(#stipple)',opacity:.5}));
+     // the shoulder cells, two, with a cage in each
+     [[210,230],[590,230]].forEach(function(c){ s.appendChild(el('rect',{x:c[0]-40,y:c[1]-40,width:80,height:80,rx:16,fill:'#d8c8e6',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('rect',{x:c[0]-40,y:c[1]-40,width:80,height:80,rx:16,fill:'url(#stipple)',opacity:.5})); s.appendChild(el('rect',{x:c[0]-20,y:c[1]-14,width:40,height:28,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1})); s.appendChild(el('rect',{x:c[0]-20,y:c[1]-14,width:40,height:28,fill:'url(#xhatch)'})); });
+     // the platform and the two men at the lever
+     s.appendChild(strut(230,330,570,330,2.4)); s.appendChild(el('rect',{x:300,y:330,width:200,height:50,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('rect',{x:300,y:330,width:200,height:50,fill:'url(#xhatch)'}));
+     s.appendChild(pilot(340,300,1.3)); s.appendChild(pilot(460,300,1.3,'bowler')); s.appendChild(el('line',{x1:352,y1:306,x2:448,y2:306,stroke:'var(--ink)','stroke-width':2}));
+     // two wheels, the pointed sledge, the weight
+     s.appendChild(wheel(290,420,38)); s.appendChild(wheel(510,420,38)); s.appendChild(strut(290,420,510,420,2));
+     s.appendChild(el('path',{d:'M80 480 L240 460 L560 460 L720 480 L560 500 L240 500 Z',fill:'#d8c8e6',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('path',{d:'M80 480 L240 460 L560 460 L720 480 L560 500 L240 500 Z',fill:'url(#hatch)',opacity:.4}));
+     [[320,480],[480,480]].forEach(function(c){ s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:30,ry:12,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1})); s.appendChild(el('ellipse',{cx:c[0],cy:c[1],rx:30,ry:12,fill:'url(#stipple)',opacity:.5})); });
+     s.appendChild(strut(400,500,400,540,2.4)); s.appendChild(el('circle',{cx:400,cy:556,r:16,fill:'var(--ink)'}));
+     s.appendChild(el('line',{x1:80,y1:480,x2:180,y2:330,stroke:'var(--ink)','stroke-width':1,'stroke-dasharray':'3 3'})); s.appendChild(el('line',{x1:720,y1:480,x2:620,y2:330,stroke:'var(--ink)','stroke-width':1,'stroke-dasharray':'3 3'}));
+     s.appendChild(callout(400,100,520,60,1)); s.appendChild(callout(300,150,200,110,2)); s.appendChild(callout(590,230,690,200,3)); s.appendChild(callout(400,306,540,280,4)); s.appendChild(callout(290,420,180,420,5)); s.appendChild(callout(560,480,680,540,6));
+     s.appendChild(hand(44,48,"'N.B. A.—A. as long again as Diagram shows.' — Page 35"));
+   }},
+ { name:'THE BATTERY', owner:"Otto Krause's Batery: Revolving Generator and Releaver. 1858 / 1900.", plate:'XIII',
+   legend:['Sensitive sponges, six, turning.', 'The wheel, still.', 'Reservoirs, two, with rain.', 'Primary Lift Impulse Battery.', 'Pressure control releaver, red light.', 'Overpressure escapes.'],
+   text:["# Top left:", "Mesure 4 by 4 overall.", "Doobletine Plane.", "nearly circular, wide Glide Keel", "Batery 8 + 2 = 10", "# Top right:", "Otto Krauses", "Batery", "Revolving Generator", "and Releaver", "on", "Simple Chemical", "Action Basis", "# On the dome:", "Pressure Control", "Releaver", "Primary Lift Impola Batery", "# On the shelves:", "Reservoir", "Reservoir", "1858", "1900", "# In the body:", "Sensitive Sponge", "Sensitive Sponge", "Sensitive Sponge", "Overpressure Escape", "Overpressure Escape", "# At the flanks:", "Lift Chamber", "Secondary", "Lift Chamber", "Secondary"], original:"assets/__paperprints/BAKERY - Pressure control for rotus primary lift generator .png",
+   estimate:["His measure: 4 by 4 overall; Batery 8 + 2 = 10.", "Not a craft but the generator: drops of chemical fluid on a hot plate, which is water on red hot iron, Lavoisier's steam-iron hydrogen of 1783.", "Verdict: It makes the gas and lifts nothing itself. Keep fire away."],
+   draw:function(s){
+     // the body: a great circle on a dome, measure 4 by 4 overall
+     s.appendChild(el('circle',{cx:400,cy:360,r:215,fill:'#cfe3dc',stroke:'var(--ink)','stroke-width':2.2}));   // seafoam, as the page
+     s.appendChild(el('circle',{cx:400,cy:360,r:215,fill:'url(#stipple)'}));
+     s.appendChild(el('path',{d:'M250 220 A150 150 0 0 1 550 220 L550 240 L250 240 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.8}));
+     s.appendChild(el('rect',{x:290,y:150,width:220,height:22,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('rect',{x:290,y:150,width:220,height:22,fill:'url(#gores)'}));
+     s.appendChild(el('rect',{x:388,y:146,width:24,height:30,rx:6,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('circle',{cx:400,cy:156,r:3,fill:'var(--red)'})); s.appendChild(el('circle',{cx:400,cy:166,r:3,fill:'var(--ink)'}));
+     s.appendChild(txt(400,196,'Pressure Control Releaver',{'text-anchor':'middle','font-size':10,'font-style':'italic'}));
+     s.appendChild(txt(400,214,'Primary Lift Impulse Battery',{'text-anchor':'middle','font-size':12,'font-style':'italic'}));
+     // the reservoirs, two, with their rain
+     [[150,'1858'],[650,'1900']].forEach(function(r){ var x=r[0];
+       s.appendChild(el('rect',{x:x-70,y:180,width:140,height:50,fill:'var(--blue)',stroke:'var(--red)','stroke-width':1.6})); s.appendChild(el('rect',{x:x-70,y:180,width:140,height:50,fill:'url(#gores)'}));
+       s.appendChild(txt(x,174,'Reservoir',{'text-anchor':'middle','font-size':9,'font-style':'italic'})); s.appendChild(txt(x,262,r[1],{'text-anchor':'middle','font-size':14,'font-style':'italic'}));
+       var rain=el('g',{'class':'rain',style:'animation-duration:3s'}); for(var i=0;i<14;i++){ var dx=x+(x<400?120:-120)+((i*37)%70)-35, dy=250+((i*53)%60); rain.appendChild(el('path',{d:'M'+dx+' '+dy+' q-3 6 0 8 q3 -2 0 -8',fill:'var(--blue)',stroke:'var(--ink)','stroke-width':.5})); }
+       s.appendChild(el('g',{},[rain])); });
+     // six sensitive sponges, red, curled, turning slowly about the still wheel
+     var arms=el('g',{'class':'spin',style:'animation-duration:36s;animation-name:spinback'});   // the hollow trails, the back leads, as on any wheel in its medium
+     for(var k=0;k<6;k++){ var a=k/6*Math.PI*2, c=Math.cos(a), sn=Math.sin(a);
+       var x0=400+c*70, y0=360+sn*70, x1=400+c*170, y1=360+sn*170, x2=400+c*195+(-sn)*40, y2=360+sn*195+c*40, x3=400+c*175+(-sn)*52, y3=360+sn*175+c*52;
+       var d='M'+x0+' '+y0+' L'+x1+' '+y1+' Q'+x2+' '+y2+' '+x3+' '+y3;
+       arms.appendChild(el('path',{d:d,fill:'none',stroke:'var(--red)','stroke-width':11,'stroke-linecap':'round'}));      // red limned
+       arms.appendChild(el('path',{d:d,fill:'none',stroke:'#b9bec4','stroke-width':6,'stroke-linecap':'round'}));           // over aluminium grey
+       arms.appendChild(el('circle',{cx:400+c*120+(-sn)*26,cy:360+sn*120+c*26,r:9,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':.8,opacity:.6})); }
+     s.appendChild(arms);
+     // the wheel, still, eight spokes, hub
+     s.appendChild(el('circle',{cx:400,cy:360,r:78,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':2}));
+     for(var m=0;m<8;m++){ var b=m/8*Math.PI*2; s.appendChild(el('line',{x1:400,y1:360,x2:400+Math.cos(b)*78,y2:360+Math.sin(b)*78,stroke:'var(--ink)','stroke-width':1.4})); }
+     s.appendChild(el('circle',{cx:400,cy:360,r:24,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('circle',{cx:400,cy:360,r:6,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1}));
+     s.appendChild(txt(560,300,'Sensitive Sponges',{'font-size':9,'font-style':'italic'})); s.appendChild(txt(520,470,'Overpressure Escape',{'font-size':9,'font-style':'italic'}));
+     s.appendChild(txt(228,470,'Overpressure Escape',{'font-size':9,'font-style':'italic'}));
+     s.appendChild(callout(560,420,660,400,1)); s.appendChild(callout(440,360,520,560,2)); s.appendChild(callout(150,205,110,120,3)); s.appendChild(callout(400,214,300,100,4)); s.appendChild(callout(400,156,470,100,5)); s.appendChild(callout(300,470,220,540,6));
+     s.appendChild(hand(44,48,"'Mesure 4 by 4 overall. Doobletine Plane, nearly circular, wide Glide Keel. Batery 8 + 2 = 10.'"));
+   }}
+,
+ { name:'JOYNLIMN', owner:"Eduard Hermsdorph's, Illust. 43, Fig. B, Dyzelline. Gemagt von John Lange & Co., Teodor Braun.", plate:'XIV',
+   legend:['Disc rotors, two, at either end.', 'Ribbed hull, lens cockpit amidships.', 'Pilot, in the lens.', 'Dray, four wheels.', 'Zuppe, under the keel.', 'John Lange & Co., Teodor Braun, builders.'],
+   text:["# Top:", "Illust. 43 Series Eduard Hermsdorph", "Fig b. Dyzelline", "gemagt von", "John Lange & Co", "Teodor Braun.", "# The measure:", "Massure acros Center", "all 61'", "Spore — 56'", "12 10 12 12  |  12.5  36 = 61."], original:"assets/__paperprints/JOYNLIMN - Ed. Hermsdorph  .png",
+   estimate:["His measure: all 61 feet, spare 56; Illust. 43.", "A ribbed hull of about 18 by 4 metres holds some 150 cubic metres; the end discs, if spheres, add 30.", "Lift: about 165 to 200 kilograms.", "Verdict: Marginal. A hull that could carry a pilot if the ironwork is light. She is drawn on a dray: he expected to be towed to the field."],
+   draw:function(s){
+     s.appendChild(rotor(150,260,105,{sectors:14,inner:0.24,rate:9,dir:1,colors:['var(--red)','var(--wash)','var(--blue)','var(--wash)']}));
+     s.appendChild(rotor(650,260,105,{sectors:14,inner:0.24,rate:9,dir:-1,colors:['var(--red)','var(--wash)','var(--blue)','var(--wash)']}));
+     s.appendChild(el('ellipse',{cx:400,cy:260,rx:170,ry:62,fill:'var(--gold)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('ellipse',{cx:400,cy:260,rx:170,ry:62,fill:'url(#gores)'}));
+     for(var i=-5;i<=5;i++){ var x=400+i*30; s.appendChild(el('ellipse',{cx:x,cy:260,rx:9,ry:62,fill:'none',stroke:'var(--ink)','stroke-width':.8})); }
+     s.appendChild(el('circle',{cx:400,cy:260,r:38,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':1.8})); s.appendChild(el('circle',{cx:400,cy:260,r:38,fill:'url(#xhatch)'}));
+     s.appendChild(pilot(400,246,1.2));
+     s.appendChild(strut(255,260,295,260,3)); s.appendChild(strut(505,260,545,260,3));
+     s.appendChild(strut(230,322,570,322,2.4)); [260,340,460,540].forEach(function(x){ s.appendChild(strut(x,322,x,400,1.6)); });
+     s.appendChild(reservoir(400,355,90,18));
+     s.appendChild(strut(200,410,600,410,2.4)); [230,350,450,570].forEach(function(x){ s.appendChild(wheel(x,440,22)); });
+     s.appendChild(callout(150,150,100,90,1)); s.appendChild(callout(470,300,580,470,2)); s.appendChild(callout(410,240,520,170,3)); s.appendChild(callout(230,462,150,520,4)); s.appendChild(callout(445,355,540,400,5)); s.appendChild(callout(700,330,740,480,6));
+     s.appendChild(hand(44,48,"'Illust. 43, Series Eduard Hermsdorph. Fig. b, Dyzelline. gemagt von John Lange & Co., Teodor Braun.'"));
+   }},
+ { name:'WE GO IT ALLONE', owner:"George Newell's, 1899. Liftpower Harnessed; turn the Lift wheel.", plate:'XV',
+   legend:['The Lift wheel: eight clubs, not sectors.', 'Spere, in each club.', 'Glass bowl, the reservoir, tall.', 'Composition hold and form.', 'Automatic press, below.', 'Geo. Krause, improver.'],
+   text:["# Right margin:", "George Newells", "‘We goe it allone’", "Lift power", "harnessed", "to", "do automatial", "and as Operators", "Will combined", "the creating of", "the Liftpower and", "give the forme to.", "turn the", "Lift wheel.", "as improoved by", "Geo Krause", "a Glassbowl", "b Composition Hold", "and Form", "c Comp. Layer", "# On the wheel:", "Dispense in Spere", "Spere", "Force Cham", "Inclosure Spere", "# Beneath:", "Automatic Press", "Sonora 1858."], original:"assets/__paperprints/WE GO IT ALLONE - Geo. Dewells - drone type .png",
+   estimate:["His words: Liftpower harnessed; turn the Lift wheel; Sonora 1858.", "Not a craft but the Lift wheel and the glass bowl, which are the mechanism of the generator.", "Verdict: No bag, and nothing to lift. The page is about making the power, not using it."],
+   draw:function(s){
+     // the tall glass bowl at left, two chambers
+     s.appendChild(el('path',{d:'M90 110 Q90 80 130 80 L210 80 Q250 80 250 110 L250 200 Q250 240 210 240 L130 240 Q90 240 90 200 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6}));
+     s.appendChild(el('path',{d:'M100 260 Q100 240 140 240 L200 240 Q240 240 240 260 L240 420 Q240 460 200 460 L140 460 Q100 460 100 420 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6}));
+     s.appendChild(el('path',{d:'M100 260 Q100 240 140 240 L200 240 Q240 240 240 260 L240 420 Q240 460 200 460 L140 460 Q100 460 100 420 Z',fill:'url(#stipple)'}));
+     for(var r=0;r<9;r++){ s.appendChild(el('circle',{cx:140+((r*41)%70),cy:360+((r*29)%80),r:1.6,fill:'var(--red)'})); }
+     s.appendChild(el('rect',{x:150,y:460,width:40,height:30,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.2}));
+     s.appendChild(strut(250,160,290,160,1.2)); s.appendChild(strut(290,160,290,300,1.2));
+     // the Lift wheel: eight clubs on a hub, in a ring
+     s.appendChild(el('circle',{cx:490,cy:290,r:200,fill:'var(--paper)',stroke:'var(--ink)','stroke-width':2.4}));
+     var clubs=el('g',{'class':'spin',style:'animation-duration:20s'});
+     for(var k=0;k<8;k++){ var a=k/8*Math.PI*2, c=Math.cos(a), sn=Math.sin(a);
+       var d='M'+(490+c*40)+' '+(290+sn*40)+' Q'+(490+c*110-sn*34)+' '+(290+sn*110+c*34)+' '+(490+c*185)+' '+(290+sn*185)+' Q'+(490+c*110+sn*34)+' '+(290+sn*110-c*34)+' '+(490+c*40)+' '+(290+sn*40)+' Z';
+       clubs.appendChild(el('path',{d:d,fill:'var(--ink)',stroke:'var(--ink)','stroke-width':1}));
+       clubs.appendChild(el('path',{d:d,fill:'url(#hatch)'}));
+       // the spere: a half-disc at the tip of every club
+       clubs.appendChild(el('path',{d:'M'+(490+c*196-sn*16)+' '+(290+sn*196+c*16)+' A16 16 0 0 1 '+(490+c*196+sn*16)+' '+(290+sn*196-c*16)+' Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1})); }
+     s.appendChild(clubs);
+     s.appendChild(el('circle',{cx:490,cy:290,r:44,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.6})); s.appendChild(el('circle',{cx:490,cy:290,r:44,fill:'url(#hatch)'})); s.appendChild(el('circle',{cx:490,cy:290,r:8,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1}));
+     // the automatic press beneath
+     s.appendChild(strut(360,500,620,500,3)); s.appendChild(el('rect',{x:420,y:470,width:60,height:30,fill:'var(--blue)',stroke:'var(--ink)','stroke-width':1.2})); s.appendChild(el('rect',{x:520,y:480,width:40,height:20,fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.2}));
+     s.appendChild(txt(450,528,'Automatic Press',{'font-size':9,'font-style':'italic'}));
+     s.appendChild(callout(600,170,680,120,1)); s.appendChild(callout(490,100,560,60,2)); s.appendChild(callout(170,160,110,520,3)); s.appendChild(callout(170,350,60,300,4)); s.appendChild(callout(480,500,600,540,5)); s.appendChild(callout(690,350,740,420,6));
+     s.appendChild(hand(44,48,"'We goe it allone.' — Geo. Newell. 'Lift power harnessed to do automatial, and as Operators Will combined: turn the Lift wheel.'"));
+   }},
+ { name:'THE WEATHER LODGE', owner:"Otto Krause and Carl Nitschke's combination, Fig. 18. 4 × 8 = 32 circular.", plate:'XVI',
+   legend:['Discs, three, in a frame aloft.', 'Frame, square, with braces.', 'Cables, the long V.', 'Basket, small, one man.', 'Zuppe, in the basket.', 'Krause\'s Governor, at the foot.'],
+   text:["# Right:", "Fig 18", "Otto Krauses", "& Carl Nitschke", "combination", "Weather Lodge", "Type", "4 × 8' = 32' circular", "# At the foot:", "Krauses Governor"], original:"assets/__paperprints/O. Krause and Nietshke - Weather Lodge type .png",
+   estimate:["His measure: 4 by 8 feet, 32 feet circular; Fig. 18.", "Three discs over a one-man basket; if spheres of 3 metres, about 45 cubic metres.", "Lift: about 45 kilograms.", "Verdict: A tethered observation post, which is what a weather lodge would be."],
+   draw:function(s){
+     s.appendChild(el('rect',{x:200,y:60,width:400,height:150,fill:'none',stroke:'var(--ink)','stroke-width':2.2}));
+     s.appendChild(strut(200,60,600,210,1)); s.appendChild(strut(600,60,200,210,1));
+     s.appendChild(rotor(280,135,62,{sectors:12,inner:0.26,rate:7,dir:1,colors:['var(--red)','var(--wash)','var(--blue)','var(--wash)']}));
+     s.appendChild(rotor(400,135,62,{sectors:12,inner:0.26,rate:7,dir:-1,colors:['var(--blue)','var(--wash)','var(--red)','var(--wash)']}));
+     s.appendChild(rotor(520,135,62,{sectors:12,inner:0.26,rate:7,dir:1,colors:['var(--red)','var(--wash)','var(--blue)','var(--wash)']}));
+     [[200,210],[600,210],[300,210],[500,210]].forEach(function(p){ s.appendChild(el('line',{x1:p[0],y1:p[1],x2:400,y2:470,stroke:'var(--ink)','stroke-width':1.2})); });
+     s.appendChild(gondola(400,490,60,36,'cage')); s.appendChild(pilot(400,470,1.1)); s.appendChild(reservoir(400,520,44,12));
+     s.appendChild(el('path',{d:'M60 560 L60 470 Q60 440 90 440 L130 440 Q160 440 160 470 L160 560 Z',fill:'var(--wash)',stroke:'var(--ink)','stroke-width':1.4})); s.appendChild(el('path',{d:'M60 560 L60 470 Q60 440 90 440 L130 440 Q160 440 160 470 L160 560 Z',fill:'url(#stipple)'}));
+     s.appendChild(el('rect',{x:100,y:500,width:20,height:30,fill:'var(--ink)'})); s.appendChild(txt(110,580,"Krause's Governor",{'text-anchor':'middle','font-size':9,'font-style':'italic'}));
+     s.appendChild(el('line',{x1:40,y1:560,x2:760,y2:560,stroke:'var(--ink)','stroke-width':1.6}));
+     s.appendChild(callout(520,80,620,40,1)); s.appendChild(callout(600,135,700,180,2)); s.appendChild(callout(470,350,620,330,3)); s.appendChild(callout(430,490,540,500,4)); s.appendChild(callout(422,520,540,540,5)); s.appendChild(callout(110,470,200,420,6));
+     s.appendChild(hand(44,48,"'Fig 18. Otto Krauses & Carl Nitschke combination. Weather Lodge Type. 4 × 8 = 32 circular.'"));
+   }}
+];
+
+
+/* ---------- a manicule, drawn, not typed: Unicode is wacky ---------- */
+function manicule(flip){
+  var svg=el('svg',{viewBox:'0 0 64 40'});
+  var g=el('g',{fill:'var(--tan)',stroke:'none',transform: flip?'translate(64 0) scale(-1 1)':''});
+  // cuff
+  g.appendChild(el('path',{d:'M2 12 h12 v18 H2 Z'})); g.appendChild(el('path',{d:'M4 10 h8 v2 H4 Z',fill:'#fff'}));
+  // fist and fingers folded
+  g.appendChild(el('path',{d:'M14 12 h16 q6 0 6 6 v10 q0 4 -4 4 H14 Z'}));
+  g.appendChild(el('path',{d:'M30 20 h8 q3 0 3 3 q0 3 -3 3 h-8 Z'})); g.appendChild(el('path',{d:'M30 26 h6 q3 0 3 2.5 q0 2.5 -3 2.5 h-6 Z'}));
+  // the index, extended
+  g.appendChild(el('path',{d:'M28 12 h30 q4 0 4 3.5 q0 3.5 -4 3.5 H28 Z'}));
+  g.appendChild(el('path',{d:'M28 13 h28',stroke:'#1a1816','stroke-width':.8,fill:'none',opacity:.6}));
+  svg.appendChild(g); return svg;
+}
+
+/* ---------- one page: every sheet, in roster order, flowing as the window allows ---------- */
+var main=document.getElementById('sheets'), nav=document.getElementById('nav');
+function render(){
+  main.innerHTML=''; nav.innerHTML='';
+  SHEETS.forEach(function(sh){
+    var svg=el('svg',{viewBox:'0 0 '+W+' '+H,xmlns:NS});
+    svg.appendChild(defs());
+    svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'var(--paper)'}));
+    var grid=el('g',{opacity:.12}); for(var x=0;x<=W;x+=40) grid.appendChild(el('line',{x1:x,y1:0,x2:x,y2:H,stroke:'var(--ink)','stroke-width':.5})); for(var y=0;y<=H;y+=40) grid.appendChild(el('line',{x1:0,y1:y,x2:W,y2:y,stroke:'var(--ink)','stroke-width':.5})); svg.appendChild(grid);
+    svg.appendChild(el('rect',{x:12,y:12,width:W-24,height:H-24,fill:'none',stroke:'var(--ink)','stroke-width':1.6}));
+    svg.appendChild(el('rect',{x:16,y:16,width:W-32,height:H-32,fill:'none',stroke:'var(--ink)','stroke-width':.5}));
+    sh.draw(svg);
+    var zone=el('rect',{'class':'cornerzone',x:W/2,y:H/2,width:W/2,height:H/2,fill:'transparent','pointer-events':'all'});
+    svg.appendChild(zone);
+    var card=titleBlock(W,H,sh.name,sh.owner,sh.plate,sh.legend); svg.appendChild(card);
+    // grow about the card's own lower-right corner, in user units: translate there, scale, translate back. no transform-box needed.
+    var CX=W-300, CY=H-112, CW=280, CH=98, cornerX=CX+CW, cornerY=CY+CH;
+    var rest='translate('+CX+' '+CY+')', big='translate('+cornerX+' '+cornerY+') scale(2) translate('+(-cornerX)+' '+(-cornerY)+') translate('+CX+' '+CY+')';
+    zone.addEventListener('mouseenter',function(){ if(svg.closest('.zoom')) card.setAttribute('transform',big); }); zone.addEventListener('mouseleave',function(){ card.setAttribute('transform',rest); });
+    svg.setAttribute('class','face up'); svg.setAttribute('data-face','sheet'); var wrap=document.createElement('section'); wrap.className='sheet'; wrap.tabIndex=0; wrap.setAttribute('role','button'); wrap.setAttribute('aria-label',sh.name); wrap.appendChild(svg); wrap.sheet=sh; var nm=document.createElement('span'); nm.className='thumbname'; nm.textContent=sh.name.replace(/,.*$/,''); wrap.appendChild(nm); main.appendChild(wrap);
+    wrap.addEventListener('mousedown',function(e){ wrap._down=[e.clientX,e.clientY]; });
+    wrap.onclick=function(e){
+      if(wrap.classList.contains('zoom')){
+        var d=wrap._down, moved=d&&(Math.abs(e.clientX-d[0])>4||Math.abs(e.clientY-d[1])>4);
+        var sel=window.getSelection&&window.getSelection().toString().length>0;
+        if(moved||sel) return;                       // a selection, or an attempt at one, keeps the page open
+        unzoom();
+      } else zoomTo(Array.prototype.indexOf.call(main.children,wrap)); };
+  });
+  var mid=document.createElement('span'); mid.className='page'; mid.textContent='Turn the Lift Wheel.'; nav.appendChild(mid);
+  bar();
+  if(paused) pause();
+}
+/* the three faces: the sheet, the text (his writing, set plain), the original (his page). built when first asked for. */
+function textFace(sh){
+  var svg=el('svg',{viewBox:'0 0 '+W+' '+H,xmlns:NS,'class':'face','data-face':'text'});
+  svg.appendChild(defs()); svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'var(--paper)'}));
+  var grid=el('g',{opacity:.12}); for(var x=0;x<=W;x+=40) grid.appendChild(el('line',{x1:x,y1:0,x2:x,y2:H,stroke:'var(--ink)','stroke-width':.5})); for(var y=0;y<=H;y+=40) grid.appendChild(el('line',{x1:0,y1:y,x2:W,y2:y,stroke:'var(--ink)','stroke-width':.5})); svg.appendChild(grid);
+  svg.appendChild(el('rect',{x:12,y:12,width:W-24,height:H-24,fill:'none',stroke:'var(--ink)','stroke-width':1.6}));
+  svg.appendChild(el('rect',{x:16,y:16,width:W-32,height:H-32,fill:'none',stroke:'var(--ink)','stroke-width':.5}));
+  function wrap(s,n){ var out=[],cur=''; s.split(' ').forEach(function(w){ if((cur+' '+w).trim().length>n){ out.push(cur.trim()); cur=w; } else cur=(cur+' '+w); }); if(cur.trim()) out.push(cur.trim()); return out; }
+  function column(lines, x0, colw, ncols, width, fs){
+    var x=x0, y=64, col=0, LIM=H-128, LH=fs+5;
+    lines.forEach(function(l){
+      var head=l.charAt(0)==='#'; var s=head?l.substring(1).trim():l; var pieces=wrap(s,width);
+      if(head && y+LH*2>LIM && col<ncols-1){ col++; x=x0+col*colw; y=64; }
+      pieces.forEach(function(piece){
+        if(y>LIM && col<ncols-1){ col++; x=x0+col*colw; y=64; }
+        if(y>LIM) return;
+        var tt=el('text',{x:x,y:y,'font-family':"'Eniee',Georgia,serif",'font-size':head?fs-3:fs,fill:'var(--ink)',opacity:head?.55:.92}); tt.textContent=piece; svg.appendChild(tt);
+        y+=head?LH-2:LH;
+      });
+    });
+  }
+  // left: his words, in up to two columns. right: the museum's estimate, one column, headed as such.
+  var n=0, numbered=(sh.text||[]).map(function(l){ if(l.charAt(0)==='#') return l; n++; return n+'. '+l; });
+  column(numbered, 50, 226, 2, 30, 13);
+  svg.appendChild(el('line',{x1:505,y1:56,x2:505,y2:H-130,stroke:'var(--ink)','stroke-width':.6,opacity:.4}));
+  var est=[]; (sh.estimate||[]).forEach(function(l){ var m=l.match(/^(His measure|His words|His note|Lift|Weight|Verdict|Not a craft|No measure[^:]*|[A-Z][^:]{0,24}?):\s*(.*)$/); if(m){ est.push('# '+m[1]+':'); est.push(m[2].charAt(0).toUpperCase()+m[2].slice(1)); } else est.push(l); });
+  column(["# The Museum's Estimate, Not His:","Lift by displacement, hydrogen at 1.1 kg per cubic metre."].concat(est), 522, 230, 1, 30, 13);
+  svg.appendChild(titleBlock(W,H,sh.name,sh.owner,sh.plate,sh.legend));
+  return svg;
+}
+function showFace(which){
+  var z=document.querySelector('.sheet.zoom'); if(!z) return; var sh=z.sheet; curFace=which;
+  if(which==='text' && !z.querySelector('[data-face=text]')) z.appendChild(textFace(sh));
+  if(which==='original'){ if(!sh.original){ which='sheet'; curFace='sheet'; } else if(!z.querySelector('[data-face=original]')){ var im=document.createElement('img'); im.className='face'; im.setAttribute('data-face','original'); im.src=sh.original; im.alt=sh.name+', the original'; z.appendChild(im); } }
+  z.querySelectorAll('.face').forEach(function(f){ f.classList.toggle('up', f.getAttribute('data-face')===which); });
+  document.querySelectorAll('#lbtools a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-face')===which); a.style.opacity=(a.getAttribute('data-face')==='original'&&!sh.original)?'.35':''; });
+}
+document.querySelectorAll('#lbtools a').forEach(function(a){ a.onclick=function(e){ e.stopPropagation(); showFace(a.getAttribute('data-face')); }; });
+/* the lightbox: one sheet up, the manicule above it, arrows step, a click on the sheet returns */
+var lit=-1;
+var curFace='sheet';
+function zoomTo(i){ var n=main.children.length; i=((i%n)+n)%n; var bh=document.getElementById('bar').offsetHeight; document.documentElement.style.setProperty('--navtop',(bh+8)+'px'); document.documentElement.style.setProperty('--lbtop',(bh+48)+'px'); document.querySelectorAll('.sheet.zoom').forEach(function(z){ z.classList.remove('zoom'); }); main.children[i].classList.add('zoom'); lit=i; document.body.classList.add('lit'); showFace(curFace); }
+function unzoom(){ curFace='sheet'; document.querySelectorAll('.sheet.zoom').forEach(function(z){ z.classList.remove('zoom'); z.querySelectorAll('.face').forEach(function(f){ f.classList.toggle('up', f.getAttribute('data-face')==='sheet'); }); }); lit=-1; document.body.classList.remove('lit'); }
+document.getElementById('lbprev').onclick=function(e){ e.stopPropagation(); if(lit>=0) zoomTo(lit-1); };
+document.getElementById('lbnext').onclick=function(e){ e.stopPropagation(); if(lit>=0) zoomTo(lit+1); };
+document.addEventListener('keydown',function(e){ if(lit<0) return; if(e.code==='ArrowLeft'){ zoomTo(lit-1); e.preventDefault(); } else if(e.code==='ArrowRight'){ zoomTo(lit+1); e.preventDefault(); } });
+/* the transport: Play and Pause, each its own button and its own function. nothing toggles. */
+var paused=false;
+function play(){ paused=false; document.body.classList.remove('paused'); bar(); }
+function pause(){ paused=true; document.body.classList.add('paused'); bar(); }
+function playIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'currentColor'}); s.appendChild(el('path',{d:'M5 3 L17 10 L5 17 Z'})); return s; }
+function pauseIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'currentColor'}); s.appendChild(el('rect',{x:4,y:3,width:4,height:14})); s.appendChild(el('rect',{x:12,y:3,width:4,height:14})); return s; }
+function bar(){
+  var r=document.getElementById('barright'); r.innerHTML='';
+  var pl=document.createElement('a'); pl.className=paused?'':'on'; pl.title='play'; pl.tabIndex=0; pl.setAttribute('role','button'); pl.appendChild(playIcon()); pl.appendChild(document.createTextNode('PLAY')); pl.onclick=play; r.appendChild(pl);
+  var pa=document.createElement('a'); pa.className=paused?'on':''; pa.title='pause'; pa.tabIndex=0; pa.setAttribute('role','button'); pa.appendChild(pauseIcon()); pa.appendChild(document.createTextNode('PAUSE')); pa.onclick=pause; r.appendChild(pa);
+  var sep=document.createElement('span'); sep.className='sep'; r.appendChild(sep);
+  [['night',moonIcon],['day',sunIcon],['dark',halfIcon]].forEach(function(m){ var a=document.createElement('a'); a.className='mode'+(mode===m[0]?' on':''); a.title=m[0]; a.tabIndex=0; a.setAttribute('role','button'); a.setAttribute('aria-label',m[0]+' lamp'); a.appendChild(m[1]()); a.onclick=function(){ setMode(m[0]); }; r.appendChild(a); });
+}
+/* the three lamps, drawn */
+function moonIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--tan)'}); s.appendChild(el('path',{d:'M12 2 a8 8 0 1 0 6 13 a7 7 0 0 1 -6 -13 Z'})); return s; }
+function sunIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--tan)'}); s.appendChild(el('circle',{cx:10,cy:10,r:4})); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; s.appendChild(el('line',{x1:10+Math.cos(a)*6,y1:10+Math.sin(a)*6,x2:10+Math.cos(a)*9,y2:10+Math.sin(a)*9,stroke:'currentColor','stroke-width':1.6,'stroke-linecap':'round'})); } return s; }
+function halfIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--tan)'}); s.appendChild(el('circle',{cx:10,cy:10,r:8,fill:'none',stroke:'currentColor','stroke-width':1.6})); s.appendChild(el('path',{d:'M10 2 a8 8 0 0 1 0 16 Z'})); return s; }
+/* ---------- the palettes: day as written; night = invert then hue-rotate 192; dark = dimmed and browned. computed once. ---------- */
+var TINCT=['paper','ink','red','green','blue','pink','gold','wash','sky'];
+var DAY={};
+(function(){ var cs=getComputedStyle(document.documentElement); TINCT.forEach(function(n){ DAY[n]=cs.getPropertyValue('--'+n).trim(); }); })();
+function hexToRgb(h){ h=h.replace('#',''); if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+function rgbToHex(c){ return '#'+c.map(function(v){ v=Math.max(0,Math.min(255,Math.round(v))); return (v<16?'0':'')+v.toString(16); }).join(''); }
+/* the CSS hue-rotate matrix, as the filter spec gives it, so the palette matches what the filter did */
+function hueRotate(c,deg){ var a=deg*Math.PI/180, cs=Math.cos(a), sn=Math.sin(a);
+  var m=[0.213+cs*0.787-sn*0.213, 0.715-cs*0.715-sn*0.715, 0.072-cs*0.072+sn*0.928,
+         0.213-cs*0.213+sn*0.143, 0.715+cs*0.285+sn*0.140, 0.072-cs*0.072-sn*0.283,
+         0.213-cs*0.213-sn*0.787, 0.715-cs*0.715+sn*0.715, 0.072+cs*0.928+sn*0.072];
+  return [m[0]*c[0]+m[1]*c[1]+m[2]*c[2], m[3]*c[0]+m[4]*c[1]+m[5]*c[2], m[6]*c[0]+m[7]*c[1]+m[8]*c[2]]; }
+function night(h){ var c=hexToRgb(h).map(function(v){ return 255-v; }); return rgbToHex(hueRotate(c,192)); }
+function dark(h){ var c=hexToRgb(h), l=(c[0]*0.3+c[1]*0.59+c[2]*0.11); return rgbToHex(c.map(function(v,i){ var g=v*0.45+l*0.55; return g*0.58+[14,8,0][i]; })); }
+var PALETTES={day:DAY, night:{}, dark:{}};
+TINCT.forEach(function(n){ PALETTES.night[n]=night(DAY[n]); PALETTES.dark[n]=dark(DAY[n]); });
+PALETTES.night.red='#d9573a';   // gules is exempt: his reds stay his reds by lamplight, a shade deepened for the ground
+var mode='day';
+function setMode(m){ mode=m; try{ localStorage.setItem('aerodrome.lamp',m); }catch(e){} var pal=PALETTES[m]||DAY; TINCT.forEach(function(n){ document.documentElement.style.setProperty('--'+n, pal[n]); }); document.body.classList.remove('night','dark'); if(m!=='day') document.body.classList.add(m); bar(); }
+document.addEventListener('keydown',function(e){
+  if(e.code==='Escape'){ unzoom(); return; }
+  if(e.code==='Enter'||e.code==='Space'){ var f=document.activeElement; if(!f) return;
+    if(f.matches && (f.matches('a[role=button],a[role=tab],#home') || f.matches('section.sheet'))){ e.preventDefault(); f.click(); } }
+});
+/* when a sheet opens, focus moves to the lightbox's SHEET tab so Tab reaches TEXT, ORIGINAL and the arrows at once; on close, back to the thumbnail */
+var _zoomTo=zoomTo; zoomTo=function(i){ _zoomTo(i); var tab=document.querySelector('#lbtools a.on'); if(tab) tab.focus(); };
+var _unzoom=unzoom; unzoom=function(){ var i=lit; _unzoom(); if(i>=0 && main.children[i]) main.children[i].focus(); };
+document.getElementById('home').onclick=function(){ unzoom(); window.scrollTo(0,0); };
+render();
+(function(){ var m=null; try{ m=localStorage.getItem('aerodrome.lamp'); }catch(e){} if(m&&PALETTES[m]&&m!=='day') setMode(m); })();
+window.AEROSHEETS={mode:setMode, play:play, pause:pause, face:showFace, zoom:zoomTo, count:SHEETS.length};
+})();
+</script>
+</body>
+</html>

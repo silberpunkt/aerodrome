@@ -4,6 +4,8 @@ The engineer's sheets: the airships of Charles A. A. Dellschau (1830-1923) and h
 
 **[Open the sheets in your browser →](https://silberpunkt.github.io/aerodrome/)**
 
+[![Sixteen airostants on their sheets, four by four: Saturnus, Gondleur, Tomba, Valvet, Rideme, Lommingdon, Maydew, Honoré Laurent, Goose, Doobely, Caad, Airostant, the Battery, Joynlimn, We Go It Allone, the Weather Lodge](assets/airostants-4x4.png)](https://silberpunkt.github.io/aerodrome/)
+
 For each craft: Dellschau's own drawing, colour-corrected; an interpreted illustration of how it was meant to work; and a transcription of his handwriting, 111 years old, gentlemanly and enthusiastic.
 
 - `engineer.html`: the sheets. The whole exhibit is this one page.

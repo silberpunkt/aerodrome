@@ -79,6 +79,12 @@
   body.night #lbnav a:hover,body.dark #lbnav a:hover{color:#fff}
   #lbnav svg{width:44px;height:36px;display:block;fill:currentColor}
   footer b{font-weight:400;color:#fff}
+  /* the last card, after the words: "turn the lift wheel". It takes whatever width there is, and follows the lamps:
+     dusk dims and browns it as the dark palette does; night inverts and turns it 192 degrees, as the night palette does. */
+  #liftwheel{margin:0;padding:0 0 0}
+  #liftwheel img{display:block;width:100%;height:auto;transition:filter .5s}
+  body.dark #liftwheel img{filter:saturate(.5) sepia(.3) brightness(.6)}
+  body.night #liftwheel img{filter:invert(1) hue-rotate(192deg)}
 </style>
 </head>
 <body>
@@ -94,6 +100,7 @@ represent helicopters or inflatable balloons. He seemed to feel differently, and
 women of that place and time, some well-known, are mentioned among the Club in his drawings. Joe Cheney's decalift SATURNUS,
 Honoré Laurence's GONDLEUR. He appeared to draw inspiration from them as a group.
 </footer>
+<figure id="liftwheel"><img src="assets/__paperprints/Turn%20the%20lift%20wheel%20-%20CD%20film%20title.png" alt="Turn the lift wheel: a title card after Dellschau" loading="lazy" width="1280" height="720"></figure>
 
 <script>
 (function(){

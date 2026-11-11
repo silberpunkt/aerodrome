@@ -1,6 +1,6 @@
 # AERODROME
 
-The engineer's sheets: the airships of Charles A. A. Dellschau (1830–1923) and his "Aero Club of Sonora", read closely. A public work in progress, by User1 (silberpunkt) and Poetas.
+The engineer's sheets: the airships of Charles A. A. Dellschau (1830-1923) and his "Aero Club of Sonora", read closely. A public work in progress, by User1 (silberpunkt) and Poetas.
 
 **[Open the sheets in your browser →](https://silberpunkt.github.io/aerodrome/)**
 

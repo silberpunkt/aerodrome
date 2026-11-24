@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AERODROME · SATURNUS, a simulation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- A-Frame is carried beside the page (js-libs), and the page asks nothing of any server. Text is drawn on canvases in Eniee, so A-Frame's own text, which fetches a font, is never used. -->
+<script>
+  /* A-Frame draws with WebGL. Ask first, so a browser with WebGL switched off gets the numbers and a word on why, not a page of errors (User1's Firefox, 24 xi 2026). */
+  window.GL_OK = (function () { try { var c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  if (window.GL_OK) document.write('<script src="js-libs/aframe.min.js"><\/script>');
+</script>
+<style>
+  @font-face{font-family:'Eniee';src:url('fonts/EnieeSlender-Regular.woff2') format('woff2')}
+  html,body{margin:0;height:100%;overflow:hidden;background:#9cc6e6;font-family:'Eniee',Georgia,serif}
+  .gui{position:fixed;z-index:10;color:#f3eee2;user-select:none}
+  .panel{background:rgba(26,24,22,.72);padding:8px 10px;border:1px solid rgba(217,183,122,.35)}
+  #title{left:14px;top:12px;font-size:20px;line-height:1.15} #title small{display:block;font-size:14px;color:#d9b77a}
+  #help{left:14px;bottom:12px;font-size:14px;color:#d9b77a;max-width:34em}
+  #help b{font-weight:400;color:#fff}
+  .bars{top:50%;transform:translateY(-50%);display:flex;gap:10px;align-items:flex-end}
+  #left{left:14px} #right{right:14px}
+  .bar{width:22px;text-align:center;font-size:12px;letter-spacing:.04em}
+  .well{position:relative;width:22px;height:200px;background:rgba(0,0,0,.35);border:1px solid rgba(243,238,226,.45)}
+  .fill{position:absolute;left:0;right:0;bottom:0;height:0}
+  .tick{position:absolute;left:-5px;right:-5px;height:2px;background:#fff}
+  .bar .lab{writing-mode:vertical-rl;transform:rotate(180deg);margin:6px auto 0;height:62px}
+  #controls{right:14px;bottom:12px;font-size:14px;display:flex;gap:10px;align-items:center}
+  #controls a{color:#d9b77a;cursor:pointer;padding:2px 8px;border:1px solid rgba(217,183,122,.5)}
+  #controls a:hover{color:#fff;border-color:#fff}
+  #controls a.on{color:#fff;border-color:#fff}
+  .a-enter-vr,.a-enter-ar{display:none!important}   /* A-Frame's own corner button sat over the controls */
+  #nogl{left:50%;top:50%;transform:translate(-50%,-50%);max-width:40em;font-size:16px;line-height:1.45;color:#d9b77a;display:none}
+  #nogl b{font-weight:400;color:#fff} #nogl h2{font-weight:400;font-size:20px;color:#fff;margin:0 0 .4em} #nogl p{margin:.4em 0}
+  #controls b{font-weight:400;color:#fff;min-width:2ch;display:inline-block;text-align:center}
+</style>
+</head>
+<body>
+<div id="title" class="gui panel">SATURNUS, a simulation<small>Joe Cheney's decalift, Illustration 27, fig. a, and Aftermath, Page 8</small></div>
+<div id="left" class="gui bars panel">
+  <div class="bar"><div class="well"><div class="fill" id="liftfill" style="background:#3f86d6"></div><div class="tick" id="lifttick"></div></div><div class="lab">LIFT</div></div>
+  <div class="bar"><div class="well"><div class="fill" id="zuppefill" style="background:#5db663"></div></div><div class="lab">ZUPPE</div></div>
+</div>
+<div id="right" class="gui bars panel">
+  <div class="bar"><div class="well"><div class="fill" id="heatfill" style="background:#c8452a"></div></div><div class="lab">HEAT</div></div>
+</div>
+<div id="help" class="gui panel"><b>W A S D</b> to walk, drag to look. Walk up to her, and click her button to make <b>Zuppe</b>; click again to stop. The signs either side of her keep the numbers.</div>
+<div id="nogl" class="gui panel"></div>
+<div id="controls" class="gui panel">souls aboard beyond the crew <a id="less" title="one fewer">&minus;</a><b id="souls">0</b><a id="more" title="one more">+</a>
+  <a id="gas" title="what the Zuppe is taken to be">Zuppe: hydrogen</a><a id="vent" title="let the gas go">vent</a></div>
+
+<a-scene renderer="antialias:true" vr-mode-ui="enabled:false" loading-screen="enabled:false" background="color:#9cc6e6" fog="type:linear;color:#c9dceb;near:300;far:1500">
+  <a-entity light="type:ambient;color:#d8dde6;intensity:0.65"></a-entity>
+  <a-entity light="type:directional;color:#fff4e0;intensity:0.9" position="-60 120 40"></a-entity>
+  <a-entity id="sky" sky-gradient></a-entity>
+  <a-entity mesa-ground></a-entity>
+
+  <!-- SATURNUS, from the restored sheet's parts: the ring of eight stippled cells on red spokes; the ribbed silver lens hull with red hoops; two hubs on one axle, fans turning; the cabin amidships; four weights on chains (side view). -->
+  <a-entity id="craft" position="0 0 -34">
+    <a-entity id="lofted" saturnus></a-entity>
+    <a-entity id="tether"></a-entity>
+  </a-entity>
+
+  <!-- her button, on a post at hip height before her -->
+  <a-entity id="post" position="0 0 -15">
+    <a-cylinder radius="0.07" height="0.95" position="0 0.475 0" color="#3b342c" material="flatShading:true" segments-radial="8"></a-cylinder>
+    <a-entity id="plate" position="0 1.0 0" rotation="-40 0 0" deco-plate></a-entity>
+  </a-entity>
+
+  <!-- the signs, tilted, at hip height, left and right of her -->
+  <a-entity id="signL" position="-5.2 0 -12" rotation="0 28 0" sign="side:left"></a-entity>
+  <a-entity id="signR" position="5.2 0 -12" rotation="0 -28 0" sign="side:right"></a-entity>
+
+  <a-entity id="rig" position="0 0 6">
+    <a-entity id="cam" camera look-controls="pointerLockEnabled:false" wasd-controls="acceleration:28" position="0 1.6 0">
+      <a-entity cursor="fuse:false" raycaster="objects:.clickable;far:80" position="0 0 -1"
+        geometry="primitive:ring;radiusInner:0.010;radiusOuter:0.014" material="color:#ffffff;shader:flat;opacity:0.55;transparent:true"></a-entity>
+    </a-entity>
+  </a-entity>
+</a-scene>
+
+<script>
+/* ---------- the numbers (eniamb, 24 xi 2026, for User1). Everything here is his measure, the sheet's own estimate, or physics; where we had to choose, the sign says so. ---------- */
+var N = {
+  mesa: 550,                         // m above sea: Sonora, California, about 1,800 feet
+  V: 4 / 3 * Math.PI * 15 * 10 * 5,  // the sheet's lens hull, 30 by 20 by 10 m, as an ellipsoid: 3,142 cubic metres
+  weight: 2000,                      // the sheet's reckoning: wood and wire, eight lifter housings and crew, about 2 tonnes
+  soul: 70,                          // kg, each further soul aboard (our figure)
+  tether: 24                         // m: a tether of ours, so she stays to be seen
+};
+var R = 8.314462, M_AIR = 0.0289644, M_H2 = 0.002016;
+function isa(h) { var T = 288.15 - 0.0065 * h, P = 101325 * Math.pow(T / 288.15, 5.25588); return { T: T, P: P, rho: P * M_AIR / (R * T) }; }   // the standard atmosphere, troposphere
+var GASES = {
+  hydrogen: { name: 'hydrogen', perM3: function (h) { return isa(h).rho * (1 - M_H2 / M_AIR); } },   // the Battery's reading: water dropped on red-hot iron
+  vacuum:   { name: 'a vacuum', perM3: function (h) { return isa(h).rho; } }                          // User1's musing: the Zuppe expressed a vacuum
+};
+var S = { gas: 'hydrogen', fill: 0, making: false, venting: false, souls: 0, up: 0 };
+function weight() { return N.weight + S.souls * N.soul; }
+function lift(h) { return N.V * S.fill * GASES[S.gas].perM3(N.mesa + h); }
+function freeAltitude() {             // where, cut loose, her lift would equal her weight; NaN if she cannot rise
+  if (lift(0) <= weight()) return NaN;
+  var lo = 0, hi = 11000 - N.mesa; for (var k = 0; k < 50; k++) { var m = (lo + hi) / 2; if (lift(m) > weight()) lo = m; else hi = m; } return lo;
+}
+// the Zuppe as made by the Battery: 3 Fe + 4 H2O -> Fe3O4 + 4 H2. Per mole of hydrogen: 3/4 mole of iron, one of water; 37.8 kJ given by steam on the iron, 44.0 kJ taken to boil the water first.
+function made() { var a = isa(N.mesa), mol = a.P * N.V * S.fill / (R * a.T); return { mol: mol, h2: mol * M_H2, iron: mol * 0.75 * 0.055845, water: mol * 0.018015, heatOut: mol * 37.8e3, boil: mol * 44.0e3 }; }
+var FULL = (function () { var f = S.fill; S.fill = 1; var m = made(); S.fill = f; return m; })();
+var FILL_SECONDS = 40;               // time here is quickened: the Battery's rate is not on his page
+function fmt(x) { return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+if (!window.GL_OK) {                 // no WebGL: the numbers, and the why
+  ['left', 'right', 'controls', 'help'].forEach(function (id) { document.getElementById(id).style.display = 'none'; });
+  var Lh = N.V * GASES.hydrogen.perM3(N.mesa), nog = document.getElementById('nogl'); nog.style.display = 'block';
+  nog.innerHTML = '<h2>She is drawn with WebGL, and this browser has it switched off.</h2>'
+    + '<p>Switch it on for this browser, or open the page in another, and she stands on her mesa. Until then, her numbers:</p>'
+    + '<p><b>His measure:</b> 70 by 100 feet, 75 feet high; 60 feet for the body. The lens hull, 30 by 20 by 10 m, holds <b>' + fmt(N.V) + '</b> cubic metres.</p>'
+    + '<p><b>Full of hydrogen</b> on a mesa at Sonora\'s ' + N.mesa + ' m, she lifts <b>' + fmt(Lh) + ' kg</b> against her <b>' + fmt(N.weight) + ' kg</b> with crew (the sheet\'s reckoning): room for <b>' + Math.floor((Lh - N.weight) / N.soul) + '</b> more souls of ' + N.soul + ' kg. Cut loose, she would stand at about <b>' + fmt(N.mesa + (function () { S.fill = 1; var f = freeAltitude(); S.fill = 0; return f; })()) + ' m</b>.</p>'
+    + '<p><b>Filled by the Battery</b>, water on red-hot iron: ' + fmt(FULL.iron) + ' kg of iron and ' + fmt(FULL.water) + ' kg of water make ' + fmt(FULL.h2) + ' kg of hydrogen. The iron gives ' + (FULL.heatOut / 1e9).toFixed(2) + ' GJ of heat; boiling the drops takes back ' + (FULL.boil / 1e9).toFixed(2) + ' GJ, so the fire keeping the plate red does the work.</p>'
+    + '<p><b>As a vacuum</b> she would lift ' + fmt(N.V * GASES.vacuum.perM3(N.mesa)) + ' kg, but the shell would bear ' + fmt(isa(N.mesa).P / 9.80665) + ' kg on every square metre. No frame of 1912 could.</p>';
+}
+</script>
+<script>
+if (window.AFRAME) (function () {
+var THREE = AFRAME.THREE;
+
+/* ---------- the sky: clear, deeper overhead ---------- */
+AFRAME.registerComponent('sky-gradient', { init: function () {
+  var c = document.createElement('canvas'); c.width = 8; c.height = 256; var g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#2f6fb3'); gr.addColorStop(0.45, '#7fb2df'); gr.addColorStop(0.5, '#c9dceb'); gr.addColorStop(1, '#c9dceb'); g.fillStyle = gr; g.fillRect(0, 0, 8, 256);
+  var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  this.el.setObject3D('mesh', new THREE.Mesh(new THREE.SphereGeometry(2500, 24, 12), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide, fog: false })));
+}});
+
+/* ---------- the ground: a mesa, flat quads, each a little different. A stand-in until a USGS elevation model is chosen: the heights are a grid, so a DEM's grid drops in. ---------- */
+AFRAME.registerComponent('mesa-ground', { init: function () {
+  var n = 120, size = 1800, step = size / n, pos = [], col = [];
+  function rnd(i, j) { var s = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return s - Math.floor(s); }
+  function noise(x, z) { return Math.sin(x * 0.011) * Math.cos(z * 0.013) + 0.5 * Math.sin(x * 0.031 + 1.7) * Math.sin(z * 0.027 + 0.4); }
+  function height(x, z) {
+    var r = Math.sqrt(x * x + z * z) + 30 * noise(x * 1.3, z * 1.3);
+    if (r < 100) return 0;                                   // the mesa's top, where she stands
+    if (r < 135) return -Math.round((r - 100) / 35 * 4) * 22; // the cliff, in ledges
+    return -90 + 14 * noise(x, z) + 6 * noise(x * 3, z * 3);  // the plain below
+  }
+  var H = []; for (var i = 0; i <= n; i++) { H[i] = []; for (var j = 0; j <= n; j++) H[i][j] = height(-size / 2 + i * step, -size / 2 + j * step); }
+  for (i = 0; i < n; i++) for (j = 0; j < n; j++) {
+    var x0 = -size / 2 + i * step, z0 = -size / 2 + j * step, x1 = x0 + step, z1 = z0 + step;
+    var a = [x0, H[i][j], z0], b = [x1, H[i + 1][j], z0], c = [x1, H[i + 1][j + 1], z1], d = [x0, H[i][j + 1], z1];
+    pos.push.apply(pos, a.concat(d, c, a, c, b));
+    var hy = (a[1] + b[1] + c[1] + d[1]) / 4, slope = Math.max(a[1], b[1], c[1], d[1]) - Math.min(a[1], b[1], c[1], d[1]);
+    var base = hy > -2 ? [0.80, 0.64, 0.42] : slope > 12 ? [0.62, 0.34, 0.22] : [0.56, 0.58, 0.38], k = 0.84 + 0.30 * rnd(i, j), w = 0.06 * (rnd(j, i) - 0.5);
+    var cc = new THREE.Color().setRGB(Math.min(1, base[0] * k + w), Math.min(1, base[1] * k), Math.min(1, base[2] * k - w), THREE.SRGBColorSpace);   // each quad a little different, given in sRGB and kept as light
+    for (var v = 0; v < 6; v++) col.push(cc.r, cc.g, cc.b);
+  }
+  var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
+  this.el.setObject3D('mesh', new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+}});
+
+/* ---------- SATURNUS. Proportions from the sheet: the ring 230 and the lens 200 by 70 in its units; his 75 feet high; the lens of the estimate, 30 by 20 by 10 m. ---------- */
+function M(color, extra) { return new THREE.MeshLambertMaterial(Object.assign({ color: color, flatShading: true }, extra || {})); }
+function stippleTexture() {
+  var c = document.createElement('canvas'); c.width = c.height = 128; var g = c.getContext('2d'); g.fillStyle = '#e9e2d0'; g.fillRect(0, 0, 128, 128); g.fillStyle = '#6b5a44';
+  for (var k = 0; k < 900; k++) { var s = Math.sin(k * 12.9898) * 43758.5453, t = Math.sin(k * 78.233) * 12345.678; g.fillRect(Math.floor((s - Math.floor(s)) * 128), Math.floor((t - Math.floor(t)) * 128), 1, 1); }
+  var tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(6, 2); tx.colorSpace = THREE.SRGBColorSpace; return tx;
+}
+AFRAME.registerComponent('saturnus', { init: function () {
+  var G = new THREE.Group(), red = M('#b8452a'), ink = M('#2b2b33'), silver = M('#c9cdd2'), wash = M('#e9e2d0');
+  var HUB = 15.0, RING = 15.25 * 1.0;                   // the hull's centre height; the ring's radius: 100 feet across, its whole width
+  // the lens hull, ribbed: an ellipsoid 30 by 10 by 20 m, in few facets
+  var hull = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10), silver); hull.scale.set(15, 5, 10); hull.position.y = HUB; G.add(hull);
+  // red hoops: two across, at a third of the length each side, and one about the middle
+  [-0.6, 0.6].forEach(function (u) { var r = Math.sqrt(1 - u * u); var hoop = new THREE.Mesh(new THREE.TorusGeometry(1, 0.03, 4, 24), red); hoop.scale.set(10 * r, 5 * r, 1); hoop.rotation.y = Math.PI / 2; hoop.position.set(15 * u, HUB, 0); G.add(hoop); });
+  var belt = new THREE.Mesh(new THREE.TorusGeometry(1, 0.012, 4, 36), red); belt.scale.set(15, 10, 1); belt.rotation.x = Math.PI / 2; belt.position.y = HUB; G.add(belt);
+  // the ring of eight stippled cells on red spokes, flat about the hull, as the top view draws it
+  var stip = new THREE.MeshLambertMaterial({ map: stippleTexture(), flatShading: true, side: THREE.DoubleSide });
+  for (var k = 0; k < 8; k++) {
+    var a0 = k / 8 * Math.PI * 2, cell = new THREE.Mesh(new THREE.RingGeometry(RING * 80 / 230, RING, 6, 1, a0 + 0.03, Math.PI / 4 - 0.06), stip);
+    cell.rotation.x = -Math.PI / 2; cell.position.y = HUB; G.add(cell);
+    var spoke = new THREE.Mesh(new THREE.BoxGeometry(RING * 150 / 230, 0.18, 0.18), red); var am = a0, rm = RING * 155 / 230;
+    spoke.position.set(Math.cos(am) * rm, HUB, -Math.sin(am) * rm); spoke.rotation.y = am; G.add(spoke);
+  }
+  var rim = new THREE.Mesh(new THREE.TorusGeometry(RING, 0.16, 4, 48), red); rim.rotation.x = Math.PI / 2; rim.position.y = HUB; G.add(rim);
+  // the axle through the ring, and two hubs on it, each a fan of six blades, turning opposite ways
+  var axle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, RING * 340 / 230, 6), ink); axle.rotation.z = Math.PI / 2; axle.position.y = HUB + 5.3; G.add(axle);
+  this.fans = [];
+  [-1, 1].forEach(function (s) {
+    var hubX = s * RING * 100 / 230, f = new THREE.Group(); f.position.set(hubX, HUB + 5.4, 0);
+    for (var b = 0; b < 6; b++) { var bl = new THREE.Mesh(new THREE.BoxGeometry(RING * 34 / 230, 0.06, 0.55), wash); bl.position.x = RING * 17 / 230; var arm = new THREE.Group(); arm.rotation.y = b / 6 * Math.PI * 2; bl.rotation.x = 0.35; arm.add(bl); f.add(arm); }
+    f.add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.4, 8), ink)); f.userData.dir = s; G.add(f); this.fans.push(f);
+  }, this);
+  // the cabin amidships, under the hull, and its keel bar
+  var cabin = new THREE.Mesh(new THREE.BoxGeometry(2.65, 1.9, 1.7), wash); cabin.position.y = HUB - 5.6; G.add(cabin);
+  var keel = new THREE.Mesh(new THREE.BoxGeometry(RING * 340 / 230, 0.2, 0.2), ink); keel.position.y = HUB - 6.6; G.add(keel);
+  // four weights on chains, hung from the keel bar (the side view): each chain 8.6 m, each weight 0.8 m across
+  this.weights = [];
+  [-150, -50, 50, 150].forEach(function (u) {
+    var x = RING * u / 230, chain = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 4), ink); chain.position.x = x; G.add(chain);
+    var ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.8, 0), ink); ball.position.x = x; G.add(ball); this.weights.push({ chain: chain, ball: ball });
+  }, this);
+  this.hub = HUB; this.G = G; this.el.setObject3D('mesh', G); this.place(0);
+}, place: function (up) {             // she stands on her weights; as she rises, the chains straighten and the weights leave the ground
+  var keelY = this.hub - 6.6, L = 8.6;
+  this.weights.forEach(function (w) { var bottom = Math.max(0.8 - up, keelY - L); var len = keelY - bottom; w.ball.position.y = bottom; w.chain.scale.y = Math.max(0.01, len); w.chain.position.y = bottom + len / 2; });
+}, tick: function (t, dt) { var d = (dt || 16) / 1000; this.fans.forEach(function (f) { f.rotation.y += f.userData.dir * d * Math.PI * 2 / 6; }); }   // one turn in six seconds, as on the sheet
+});
+
+/* ---------- canvases: the deco button's plate, and the signs ---------- */
+function canvasMesh(w, h, px, draw) { var c = document.createElement('canvas'); c.width = px; c.height = Math.round(px * h / w); var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t })); m.userData.redraw = function () { draw(c.getContext('2d'), c.width, c.height); t.needsUpdate = true; }; m.userData.redraw(); return m; }
+AFRAME.registerComponent('deco-plate', { init: function () {
+  var plate = canvasMesh(0.62, 0.42, 512, function (g, W, H) {        // a 1912 plate: brass, a sunburst, his word, and its wear
+    g.fillStyle = '#2b241c'; g.fillRect(0, 0, W, H); g.fillStyle = '#9c7a45'; g.fillRect(10, 10, W - 20, H - 20); g.fillStyle = '#2b241c'; g.fillRect(22, 22, W - 44, H - 44);
+    var lit = S.making; g.strokeStyle = lit ? '#ffd27a' : '#6b5634'; g.lineWidth = lit ? 5 : 3; for (var k = 0; k < 13; k++) { var a = Math.PI + k / 12 * Math.PI; g.beginPath(); g.moveTo(W / 2, H * 0.62); g.lineTo(W / 2 + Math.cos(a) * 200, H * 0.62 + Math.sin(a) * 120); g.stroke(); }
+    g.fillStyle = lit ? '#fff4d6' : '#9c8460'; g.font = '44px Eniee, Georgia, serif'; g.textAlign = 'center'; g.fillText('PRIMARY LIFT IMPULSE', W / 2, H * 0.86);
+    g.strokeStyle = 'rgba(243,238,226,.35)'; g.lineWidth = 1; for (k = 0; k < 40; k++) { var s = Math.sin(k * 91.7) * 999, x = (s - Math.floor(s)) * W, y = ((s * 7) - Math.floor(s * 7)) * H; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 14 + 20 * Math.sin(k), y + 4 * Math.cos(k * 3)); g.stroke(); }
+  });
+  this.el.setObject3D('mesh', plate); this.plate = plate;
+  var btn = document.createElement('a-entity'); btn.setAttribute('geometry', 'primitive:cylinder;radius:0.11;height:0.06;segmentsRadial:12'); btn.setAttribute('material', 'color:#8a6d40;emissive:#000000;emissiveIntensity:0;flatShading:true');
+  btn.setAttribute('rotation', '90 0 0'); btn.setAttribute('position', '0 0.04 0.03'); btn.classList.add('clickable'); this.el.appendChild(btn); this.btn = btn;
+  btn.addEventListener('click', function () { S.making = !S.making; S.venting = false; paint(); });
+  btn.addEventListener('mouseenter', function () { btn.setAttribute('material', 'color', '#ffe39a'); }); btn.addEventListener('mouseleave', function () { lastLit = null; });
+}});
+var SIGNS = {};
+AFRAME.registerComponent('sign', { schema: { side: { default: 'left' } }, init: function () {
+  var side = this.data.side, post = document.createElement('a-cylinder'); post.setAttribute('radius', 0.05); post.setAttribute('height', 0.8); post.setAttribute('position', '0 0.4 0'); post.setAttribute('color', '#3b342c'); this.el.appendChild(post);
+  var m = canvasMesh(1.9, 1.15, 1024, function (g, W, H) { drawSign(side, g, W, H); }); m.position.set(0, 0.95, 0); m.rotation.x = -0.55; this.el.setObject3D('mesh', m); SIGNS[side] = m;
+}});
+function drawSign(side, g, W, H) {
+  g.fillStyle = '#f0ebdf'; g.fillRect(0, 0, W, H); g.strokeStyle = '#735328'; g.lineWidth = 6; g.strokeRect(10, 10, W - 20, H - 20);
+  var lines = side === 'left' ? [
+    ['HIS MEASURE', 1],
+    ['70 by 100 feet, 75 feet high; 60 feet for the body.', 0],
+    ['The lens hull, 30 by 20 by 10 m: ' + fmt(N.V) + ' cubic metres.', 0],
+    ['Her weight, with crew (the sheet\'s): ' + fmt(N.weight) + ' kg.', 0],
+    ['Each further soul: ' + N.soul + ' kg (ours).', 0],
+    ['The mesa: ' + N.mesa + ' m, the height of Sonora.', 0],
+    ['Full of hydrogen here, she lifts ' + fmt(N.V * GASES.hydrogen.perM3(N.mesa)) + ' kg:', 0],
+    ['room for ' + Math.floor((N.V * GASES.hydrogen.perM3(N.mesa) - N.weight) / N.soul) + ' more souls.', 0],
+    ['Filled by the Battery, water on red-hot iron:', 0],
+    [fmt(FULL.iron) + ' kg of iron and ' + fmt(FULL.water) + ' kg of water.', 0]
+  ] : signNow();
+  g.textAlign = 'left'; var y = 78;
+  lines.forEach(function (l) { g.fillStyle = l[1] ? '#28282d' : '#735328'; g.font = (l[1] ? '50px' : '38px') + ' Eniee, Georgia, serif'; g.fillText(l[0], 44, y); y += l[1] ? 70 : 52; });
+}
+function signNow() {
+  var L = lift(S.up), W = weight(), f = freeAltitude(), mk = made(), out = [['NOW', 1]];
+  if (S.gas === 'hydrogen') out.push(['Zuppe made: ' + Math.round(S.fill * 100) + '%, ' + fmt(mk.h2) + ' kg of hydrogen.', 0], ['Iron spent: ' + fmt(mk.iron) + ' kg; water: ' + fmt(mk.water) + ' kg.', 0], ['Heat from the iron: ' + (mk.heatOut / 1e9).toFixed(2) + ' GJ; boiling the drops', 0], ['took back ' + (mk.boil / 1e9).toFixed(2) + ' GJ. The fire keeps the plate red.', 0]);
+  else out.push(['Zuppe as a vacuum: ' + Math.round(S.fill * 100) + '% emptied.', 0], ['The shell would bear ' + fmt(isa(N.mesa).P / 9.80665) + ' kg on every', 0], ['square metre. No frame of 1912 could.', 0], ['', 0]);
+  out.push(['Lift ' + fmt(L) + ' kg; weight ' + fmt(W) + ' kg; spare ' + (L - W >= 0 ? '+' : '') + fmt(L - W) + ' kg.', 0]);
+  out.push([isNaN(f) ? 'She stays on her weights.' : 'Free, she would stand at ' + fmt(N.mesa + f) + ' m.', 0]);
+  out.push(['On our tether: ' + S.up.toFixed(1) + ' m up.', 0]);
+  return out;
+}
+
+/* ---------- the GUI ---------- */
+var lastLit = null;
+function paint() {
+  var Lfull = N.V * GASES[S.gas].perM3(N.mesa);
+  document.getElementById('liftfill').style.height = Math.min(100, lift(S.up) / Lfull * 100) + '%';
+  document.getElementById('lifttick').style.bottom = Math.min(100, weight() / Lfull * 100) + '%';
+  document.getElementById('zuppefill').style.height = S.fill * 100 + '%';
+  document.getElementById('heatfill').style.height = (S.gas === 'hydrogen' ? S.fill * 100 : 0) + '%';
+  document.getElementById('souls').textContent = S.souls;
+  document.getElementById('gas').textContent = 'Zuppe: ' + GASES[S.gas].name;
+  document.getElementById('vent').className = S.venting ? 'on' : '';
+  if (lastLit !== S.making) {                         // the button lights while Zuppe is made, and goes dark when it stops (User1, 24 xi 2026)
+    lastLit = S.making; var b = document.querySelector('#plate [geometry]');
+    if (b) b.setAttribute('material', S.making ? 'color:#7fe08a;emissive:#3fbf55;emissiveIntensity:0.9;flatShading:true' : 'color:#8a6d40;emissive:#000000;emissiveIntensity:0;flatShading:true');
+    var p = document.querySelector('#plate'); if (p && p.components['deco-plate']) p.components['deco-plate'].plate.userData.redraw();
+  }
+}
+document.getElementById('less').onclick = function () { S.souls = Math.max(0, S.souls - 1); paint(); };
+document.getElementById('more').onclick = function () { S.souls = Math.min(40, S.souls + 1); paint(); };
+document.getElementById('gas').onclick = function () { S.gas = S.gas === 'hydrogen' ? 'vacuum' : 'hydrogen'; S.fill = 0; S.making = false; paint(); };
+document.getElementById('vent').onclick = function () { S.venting = !S.venting; if (S.venting) S.making = false; paint(); };
+addEventListener('keydown', function (e) { if (e.code === 'Escape' && window.parent !== window) { try { window.parent.document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' })); } catch (x) {} } });
+
+/* ---------- the clock ---------- */
+var lastSign = 0;
+AFRAME.registerComponent('sim-clock', { tick: function (t, dt) {
+  var d = Math.min(0.1, (dt || 16) / 1000);
+  if (S.making) { S.fill = Math.min(1, S.fill + d / FILL_SECONDS); if (S.fill >= 1) S.making = false; }
+  if (S.venting) { S.fill = Math.max(0, S.fill - d / 20); if (S.fill <= 0) S.venting = false; }
+  var f = freeAltitude(), target = isNaN(f) ? 0 : Math.min(N.tether, f);
+  S.up += (target - S.up) * Math.min(1, d * 0.5);            // she eases to where her lift and weight agree, or to the tether's end
+  var lofted = document.getElementById('lofted'); lofted.object3D.position.y = S.up; lofted.components.saturnus.place(S.up);
+  var teth = document.getElementById('tether');
+  if (!teth.getObject3D('mesh')) teth.setObject3D('mesh', new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 4), M('#2b2b33')));
+  var tm = teth.getObject3D('mesh'); tm.visible = S.up > 0.05; tm.scale.y = Math.max(0.01, S.up); tm.position.set(0, S.up / 2, 2);
+  paint();
+  if (t - lastSign > 250) { lastSign = t; ['left', 'right'].forEach(function (s) { if (SIGNS[s]) SIGNS[s].userData.redraw(); }); }
+  var rig = document.getElementById('rig').object3D.position, cam = document.getElementById('cam').object3D.position;   // stay on the mesa's top
+  var wx = rig.x + cam.x, wz = rig.z + cam.z, r = Math.sqrt(wx * wx + wz * wz); if (r > 95) { cam.x = wx * 95 / r - rig.x; cam.z = wz * 95 / r - rig.z; }
+}});
+document.querySelector('a-scene').setAttribute('sim-clock', '');
+document.fonts.load('40px Eniee').then(function () { ['left', 'right'].forEach(function (s) { if (SIGNS[s]) SIGNS[s].userData.redraw(); }); var p = document.querySelector('#plate'); if (p && p.components['deco-plate']) p.components['deco-plate'].plate.userData.redraw(); });
+paint();
+})();
+window.__sim = { S: S, N: N, lift: lift, weight: weight, freeAltitude: freeAltitude, made: made, FULL: FULL };
+</script>
+</body>
+</html>

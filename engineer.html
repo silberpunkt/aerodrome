@@ -76,6 +76,7 @@
   .sheet.zoom .face{transition:transform .22s ease}
   .sheet.zoom img.face{max-width:100vw;max-height:calc(100vh - var(--lbtop,96px));margin-top:var(--lbtop,96px);display:none;object-fit:contain;box-shadow:0 2px 0 #000}
   .sheet.zoom .face.up{display:block}
+  .sheet.zoom iframe.face{width:100vw;height:calc(100vh - var(--lbtop,96px));margin-top:var(--lbtop,96px);border:0;cursor:default}
   .sheet.zoom{user-select:text}
   .sheet.zoom svg text{user-select:text;cursor:text}
   /* the museum-note grows from its lower-right corner on mouseover, twice its size, and settles back */
@@ -113,7 +114,7 @@
 <body>
 <header><b>AERO CLUB OF SONORA</b> &nbsp;·&nbsp; ENGINEER'S SHEETS &nbsp;·&nbsp; 1904 &nbsp;·&nbsp; none of these are held up by gas</header>
 <div id="bar"><details class="mast" id="about"><summary id="home"><b>The Sonora Airostant Club.</b><small>Illustrations by Chas. Dellschau, 1904-1912.</small></summary><div class="more"><p><b>Charles A. A. Dellschau</b> (1830-1923), a <b>Prussian</b>-born butcher and saddlery clerk in <b>Texas</b>, retired in 1899 and filled at least thirteen books, in an attic in <b>Houston</b>, with the airships of a club of aeronauts he said had flown at <b>Sonora</b>, in <b>Gold Rush California</b>, with himself as their draftsman.</p><p>Each page - which <b>Dellschau</b> called a "plate" - is numbered, but the sequence begins at 1601, implying earlier plates were lost or destroyed. He drew perhaps as many as 100 named aero designs: <b>MIO</b>, <b>SCHNABEL</b>, <b>MARY</b>, <b>JOURDAN</b>, "<b>TRUMP</b>", <b>DOOBELY</b>, <b>GOOSE</b>, and one <b>Joe Cheney</b>'s decalift <b>SATURNUS</b>. By the calculation of <b>William Steen</b>, of the <b>Menil Collection</b>, his some 5,000 drawings came at a rate of one every one or two days.</p><p><b>Pete Navarro</b>, a <b>Houston</b> commercial artist and UFO researcher, bought eight of the twelve surviving notebooks in 1972, and tried to decode them. As early as 1970, <b>Navarro</b> linked the club to the mystery airship sightings of 1896-97, first over <b>Sacramento</b> and then across <b>Texas</b>. This remains unproven and is not a scholarly consensus.</p><p><b>Dellschau</b>'s own written account is a two-part journal of some 200 pages, in <b>German</b>. <b>Dennis Crenshaw</b>, with <b>Navarro</b>, later published their findings in <b>The Secrets of Dellschau: The Sonora Aero Club and the Airships of the 1800s, a True Story</b> (2009). The journal and the twelve surviving scrapbooks together constitute the primary source for everything about the club.</p><p>The books lay untouched for half a century, went out with the trash after a fire in the late 1960s, and were saved by a furniture dealer, <b>Fred Washington</b>. Outside his pages, no record of the <b>Club</b> has yet been found.</p></div></details><div class="right" id="barright"></div></div>
-<div id="lbtools" role="tablist" aria-label="Faces"><a data-face="sheet" class="on" tabindex="0" role="tab">SHEET</a><a data-face="original" tabindex="0" role="tab">ORIGINAL</a><a data-face="text" tabindex="0" role="tab">TEXT</a></div>
+<div id="lbtools" role="tablist" aria-label="Faces"><a data-face="sheet" class="on" tabindex="0" role="tab">SHEET</a><a data-face="original" tabindex="0" role="tab">ORIGINAL</a><a data-face="text" tabindex="0" role="tab">TEXT</a><a data-face="simulation" tabindex="0" role="tab">SIMULATION</a></div>
 <div id="lbnav"><a id="lbprev" title="previous" tabindex="0" role="button" aria-label="Previous sheet"><svg viewBox="0 0 44 36"><path d="M34 4 L12 18 L34 32 Z"/></svg></a><a id="lbnext" title="next" tabindex="0" role="button" aria-label="Next sheet"><svg viewBox="0 0 44 36"><path d="M10 4 L32 18 L10 32 Z"/></svg></a></div>
 <main id="sheets"></main>
 <nav id="nav"></nav>
@@ -728,16 +729,20 @@ function textFace(sh){
 function showFace(which){
   var z=document.querySelector('.sheet.zoom'); if(!z) return; var sh=z.sheet; curFace=which;
   if(which==='text' && !z.querySelector('[data-face=text]')) z.appendChild(textFace(sh));
+  /* the fourth face (User1, 24 xi 2026): a simulation, in its own page, loaded only when asked for and let go when left. SATURNUS is the first. */
+  var SIMS={'SATURNUS':'simulation.html'};
+  document.querySelectorAll('iframe[data-face=simulation]').forEach(function(f){ if(which!=='simulation'||f.parentNode!==z) f.remove(); });
+  if(which==='simulation'){ if(!SIMS[sh.name]){ which='sheet'; curFace='sheet'; } else if(!z.querySelector('iframe[data-face=simulation]')){ var fr=document.createElement('iframe'); fr.className='face'; fr.setAttribute('data-face','simulation'); fr.src=SIMS[sh.name]; fr.title=sh.name+', a simulation'; fr.setAttribute('allow','fullscreen'); z.appendChild(fr); fr.focus(); } }
   if(which==='original'){ if(!sh.original){ which='sheet'; curFace='sheet'; } else if(!z.querySelector('[data-face=original]')){ var im=document.createElement('img'); im.className='face'; im.setAttribute('data-face','original'); im.src=sh.original; im.alt=sh.name+', the original'; z.appendChild(im); } }
   z.querySelectorAll('.face').forEach(function(f){ f.classList.toggle('up', f.getAttribute('data-face')===which); });
-  document.querySelectorAll('#lbtools a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-face')===which); a.style.opacity=(a.getAttribute('data-face')==='original'&&!sh.original)?'.35':''; });
+  document.querySelectorAll('#lbtools a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-face')===which); var f=a.getAttribute('data-face'); a.style.opacity=((f==='original'&&!sh.original)||(f==='simulation'&&!SIMS[sh.name]))?'.35':''; });
 }
 document.querySelectorAll('#lbtools a').forEach(function(a){ a.onclick=function(e){ e.stopPropagation(); showFace(a.getAttribute('data-face')); }; });
 /* the lightbox: one sheet up, the manicule above it, arrows step, a click on the sheet returns */
 var lit=-1;
 var curFace='sheet';
 function zoomTo(i){ var n=main.children.length; i=((i%n)+n)%n; var bh=document.getElementById('bar').offsetHeight; document.documentElement.style.setProperty('--navtop',(bh+8)+'px'); document.documentElement.style.setProperty('--lbtop',(bh+48)+'px'); document.querySelectorAll('.sheet.zoom').forEach(function(z){ z.classList.remove('zoom'); }); main.children[i].classList.add('zoom'); lit=i; document.body.classList.add('lit'); showFace(curFace); }
-function unzoom(){ curFace='sheet'; document.querySelectorAll('.sheet.zoom').forEach(function(z){ z.classList.remove('zoom'); z.querySelectorAll('.face').forEach(function(f){ f.classList.toggle('up', f.getAttribute('data-face')==='sheet'); }); }); lit=-1; document.body.classList.remove('lit'); }
+function unzoom(){ curFace='sheet'; document.querySelectorAll('iframe[data-face=simulation]').forEach(function(f){ f.remove(); }); document.querySelectorAll('.sheet.zoom').forEach(function(z){ z.classList.remove('zoom'); z.querySelectorAll('.face').forEach(function(f){ f.classList.toggle('up', f.getAttribute('data-face')==='sheet'); }); }); lit=-1; document.body.classList.remove('lit'); }
 document.getElementById('lbprev').onclick=function(e){ e.stopPropagation(); if(lit>=0) zoomTo(lit-1); };
 document.getElementById('lbnext').onclick=function(e){ e.stopPropagation(); if(lit>=0) zoomTo(lit+1); };
 document.addEventListener('keydown',function(e){ if(lit<0) return; if(e.code==='ArrowLeft'){ zoomTo(lit-1); e.preventDefault(); } else if(e.code==='ArrowRight'){ zoomTo(lit+1); e.preventDefault(); } });

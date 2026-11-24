@@ -16,7 +16,7 @@
   .gui{position:fixed;z-index:10;color:#f3eee2;user-select:none}
   .panel{background:rgba(26,24,22,.72);padding:8px 10px;border:1px solid rgba(217,183,122,.35)}
   #title{left:14px;top:12px;font-size:20px;line-height:1.15} #title small{display:block;font-size:14px;color:#d9b77a}
-  #help{left:14px;bottom:12px;font-size:14px;color:#d9b77a;max-width:34em}
+  #help{left:14px;bottom:12px;font-size:14px;color:#d9b77a;max-width:22.7em}   /* two thirds of what it was: a gap at the foot for the eye to walk out (User1, 24 xi 2026) */
   #help b{font-weight:400;color:#fff}
   .bars{top:50%;transform:translateY(-50%);display:flex;gap:10px;align-items:flex-end}
   #left{left:14px} #right{right:14px}
@@ -25,7 +25,8 @@
   .fill{position:absolute;left:0;right:0;bottom:0;height:0}
   .tick{position:absolute;left:-5px;right:-5px;height:2px;background:#fff}
   .bar .lab{writing-mode:vertical-rl;transform:rotate(180deg);margin:6px auto 0;height:62px}
-  #controls{right:14px;bottom:12px;font-size:14px;display:flex;gap:10px;align-items:center}
+  #controls{right:14px;bottom:12px;font-size:14px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px 10px;align-items:center;max-width:24em}
+  #controls .brk{flex-basis:100%;height:0}
   #controls a{color:#d9b77a;cursor:pointer;padding:2px 8px;border:1px solid rgba(217,183,122,.5)}
   #controls a:hover{color:#fff;border-color:#fff}
   #controls a.on{color:#fff;border-color:#fff}
@@ -43,11 +44,12 @@
 </div>
 <div id="right" class="gui bars panel">
   <div class="bar"><div class="well"><div class="fill" id="heatfill" style="background:#c8452a"></div></div><div class="lab">HEAT</div></div>
+  <div class="bar" title="a what-if: no lifter of his shows a pile"><div class="well"><div class="fill" id="pilefill" style="background:#e0c070"></div></div><div class="lab">PILE</div></div>
 </div>
 <div id="help" class="gui panel"><b>W A S D</b> to walk, drag to look. Walk up to her, and click her button to make <b>Zuppe</b>; click again to stop. The signs either side of her keep the numbers.</div>
 <div id="nogl" class="gui panel"></div>
-<div id="controls" class="gui panel">souls aboard beyond the crew <a id="less" title="one fewer">&minus;</a><b id="souls">0</b><a id="more" title="one more">+</a>
-  <a id="gas" title="what the Zuppe is taken to be">Zuppe: hydrogen</a><a id="vent" title="let the gas go">vent</a></div>
+<div id="controls" class="gui panel">souls aboard beyond the crew <a id="less" title="one fewer">&minus;</a><b id="souls">0</b><a id="more" title="one more">+</a><span class="brk"></span>
+  <a id="gas" title="what the Zuppe is taken to be: press for the next reading">Zuppe: hydrogen, by red-hot iron</a><a id="vent" title="let the gas go">vent</a></div>
 
 <a-scene renderer="antialias:true" vr-mode-ui="enabled:false" loading-screen="enabled:false" background="color:#9cc6e6" fog="type:linear;color:#c9dceb;near:300;far:1500">
   <a-entity light="type:ambient;color:#d8dde6;intensity:0.65"></a-entity>
@@ -91,8 +93,9 @@ var N = {
 var R = 8.314462, M_AIR = 0.0289644, M_H2 = 0.002016;
 function isa(h) { var T = 288.15 - 0.0065 * h, P = 101325 * Math.pow(T / 288.15, 5.25588); return { T: T, P: P, rho: P * M_AIR / (R * T) }; }   // the standard atmosphere, troposphere
 var GASES = {
-  hydrogen: { name: 'hydrogen', perM3: function (h) { return isa(h).rho * (1 - M_H2 / M_AIR); } },   // the Battery's reading: water dropped on red-hot iron
-  vacuum:   { name: 'a vacuum', perM3: function (h) { return isa(h).rho; } }                          // User1's musing: the Zuppe expressed a vacuum
+  hydrogen:  { name: 'hydrogen, by red-hot iron', perM3: function (h) { return isa(h).rho * (1 - M_H2 / M_AIR); } },   // the Battery's reading: water dropped on red-hot iron
+  magnesium: { name: 'hydrogen, by magnesium', perM3: function (h) { return isa(h).rho * (1 - M_H2 / M_AIR); } },      // the ration heater's way: water on magnesium with a little iron; no fire (User1, 24 xi 2026)
+  vacuum:    { name: 'a vacuum', perM3: function (h) { return isa(h).rho; } }                                           // User1's musing: the Zuppe expressed a vacuum
 };
 var S = { gas: 'hydrogen', fill: 0, making: false, venting: false, souls: 0, up: 0 };
 function weight() { return N.weight + S.souls * N.soul; }
@@ -102,8 +105,15 @@ function freeAltitude() {             // where, cut loose, her lift would equal 
   var lo = 0, hi = 11000 - N.mesa; for (var k = 0; k < 50; k++) { var m = (lo + hi) / 2; if (lift(m) > weight()) lo = m; else hi = m; } return lo;
 }
 // the Zuppe as made by the Battery: 3 Fe + 4 H2O -> Fe3O4 + 4 H2. Per mole of hydrogen: 3/4 mole of iron, one of water; 37.8 kJ given by steam on the iron, 44.0 kJ taken to boil the water first.
-function made() { var a = isa(N.mesa), mol = a.P * N.V * S.fill / (R * a.T); return { mol: mol, h2: mol * M_H2, iron: mol * 0.75 * 0.055845, water: mol * 0.018015, heatOut: mol * 37.8e3, boil: mol * 44.0e3 }; }
+// or by magnesium: Mg + 2 H2O -> Mg(OH)2 + H2, which gives 352.9 kJ a mole of hydrogen; per mole, one of magnesium and two of water.
+function made() { var a = isa(N.mesa), mol = a.P * N.V * S.fill / (R * a.T); return { mol: mol, h2: mol * M_H2, mg: mol * 0.024305, mgWater: mol * 2 * 0.018015, mgOH2: mol * 0.058320, mgHeat: mol * 352.9e3, iron: mol * 0.75 * 0.055845, water: mol * 0.018015, heatOut: mol * 37.8e3, boil: mol * 44.0e3 }; }
 var FULL = (function () { var f = S.fill; S.fill = 1; var m = made(); S.fill = f; return m; })();
+// THE PILE, a what-if (User1, 24 xi 2026; no lifter of his shows one, but his late collage 'The Spark of Life' keeps the Willard battery of 1919).
+// A pile as heavy as her spare lift, at about 30 Wh a kilogram (lead-acid of the time, from memory), making hydrogen by electrolysis at the least it can take,
+// 39.4 kWh a kilogram. Generous to the pile on both counts.
+var PILE_WH_PER_KG = 30, ELECTROLYSIS_KWH_PER_KG = 39.4;
+function pile() { var spare = Math.max(0, lift(S.up) - weight()), kwh = spare * PILE_WH_PER_KG / 1000, h2 = kwh / ELECTROLYSIS_KWH_PER_KG; return { kg: spare, kwh: kwh, h2: h2, ofHull: h2 / FULL.h2 }; }
+var HEAT_SCALE = FULL.mgHeat;            // the HEAT bar on one scale for both: full is the heat magnesium gives for her whole fill
 var FILL_SECONDS = 40;               // time here is quickened: the Battery's rate is not on his page
 function fmt(x) { return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 if (!window.GL_OK) {                 // no WebGL: the numbers, and the why
@@ -113,7 +123,9 @@ if (!window.GL_OK) {                 // no WebGL: the numbers, and the why
     + '<p>Switch it on for this browser, or open the page in another, and she stands on her mesa. Until then, her numbers:</p>'
     + '<p><b>His measure:</b> 70 by 100 feet, 75 feet high; 60 feet for the body. The lens hull, 30 by 20 by 10 m, holds <b>' + fmt(N.V) + '</b> cubic metres.</p>'
     + '<p><b>Full of hydrogen</b> on a mesa at Sonora\'s ' + N.mesa + ' m, she lifts <b>' + fmt(Lh) + ' kg</b> against her <b>' + fmt(N.weight) + ' kg</b> with crew (the sheet\'s reckoning): room for <b>' + Math.floor((Lh - N.weight) / N.soul) + '</b> more souls of ' + N.soul + ' kg. Cut loose, she would stand at about <b>' + fmt(N.mesa + (function () { S.fill = 1; var f = freeAltitude(); S.fill = 0; return f; })()) + ' m</b>.</p>'
-    + '<p><b>Filled by the Battery</b>, water on red-hot iron: ' + fmt(FULL.iron) + ' kg of iron and ' + fmt(FULL.water) + ' kg of water make ' + fmt(FULL.h2) + ' kg of hydrogen. The iron gives ' + (FULL.heatOut / 1e9).toFixed(2) + ' GJ of heat; boiling the drops takes back ' + (FULL.boil / 1e9).toFixed(2) + ' GJ, so the fire keeping the plate red does the work.</p>'
+    + '<p><b>Filled by the Battery</b>, water on red-hot iron: ' + fmt(FULL.iron) + ' kg of iron and ' + fmt(FULL.water) + ' kg of water make ' + fmt(FULL.h2) + ' kg of hydrogen. The iron gives ' + (FULL.heatOut / 1e9).toFixed(2) + ' GJ of heat; boiling the drops takes back ' + (FULL.boil / 1e9).toFixed(2) + ' GJ, so the fire keeping the plate red does the work. The rusted iron is won back with coal (the steam-iron cycle), so the same iron fills her again.</p>'
+    + '<p><b>A pile</b> (a what-if: no lifter of his shows one) as heavy as her spare lift, ' + fmt(Lh - N.weight) + ' kg at about 30 Wh a kilogram, would make ' + ((Lh - N.weight) * 0.030 / 39.4).toFixed(2) + ' kg of hydrogen by electrolysis: ' + (((Lh - N.weight) * 0.030 / 39.4) / FULL.h2 * 100).toFixed(2) + '% of her hull.</p>'
+    + '<p><b>By magnesium</b>, as a ration heater does it, water on magnesium with a little iron: ' + fmt(FULL.mg) + ' kg of magnesium and ' + fmt(FULL.mgWater) + ' kg of water make the same ' + fmt(FULL.h2) + ' kg of hydrogen, and give ' + (FULL.mgHeat / 1e9).toFixed(1) + ' GJ of heat with no fire.</p>'
     + '<p><b>As a vacuum</b> she would lift ' + fmt(N.V * GASES.vacuum.perM3(N.mesa)) + ' kg, but the shell would bear ' + fmt(isa(N.mesa).P / 9.80665) + ' kg on every square metre. No frame of 1912 could.</p>';
 }
 </script>
@@ -220,7 +232,7 @@ AFRAME.registerComponent('deco-plate', { init: function () {
 var SIGNS = {};
 AFRAME.registerComponent('sign', { schema: { side: { default: 'left' } }, init: function () {
   var side = this.data.side, post = document.createElement('a-cylinder'); post.setAttribute('radius', 0.05); post.setAttribute('height', 0.8); post.setAttribute('position', '0 0.4 0'); post.setAttribute('color', '#3b342c'); this.el.appendChild(post);
-  var m = canvasMesh(1.9, 1.15, 1024, function (g, W, H) { drawSign(side, g, W, H); }); m.position.set(0, 0.95, 0); m.rotation.x = -0.55; this.el.setObject3D('mesh', m); SIGNS[side] = m;
+  var m = canvasMesh(1.9, 1.3, 1024, function (g, W, H) { drawSign(side, g, W, H); }); m.position.set(0, 0.95, 0); m.rotation.x = -0.55; this.el.setObject3D('mesh', m); SIGNS[side] = m;
 }});
 function drawSign(side, g, W, H) {
   g.fillStyle = '#f0ebdf'; g.fillRect(0, 0, W, H); g.strokeStyle = '#735328'; g.lineWidth = 6; g.strokeRect(10, 10, W - 20, H - 20);
@@ -234,18 +246,22 @@ function drawSign(side, g, W, H) {
     ['Full of hydrogen here, she lifts ' + fmt(N.V * GASES.hydrogen.perM3(N.mesa)) + ' kg:', 0],
     ['room for ' + Math.floor((N.V * GASES.hydrogen.perM3(N.mesa) - N.weight) / N.soul) + ' more souls.', 0],
     ['Filled by the Battery, water on red-hot iron:', 0],
-    [fmt(FULL.iron) + ' kg of iron and ' + fmt(FULL.water) + ' kg of water.', 0]
+    [fmt(FULL.iron) + ' kg of iron and ' + fmt(FULL.water) + ' kg of water.', 0],
+    ['The rusted iron is won back with coal (the', 0],
+    ['steam-iron cycle), so the same iron fills her again.', 0]
   ] : signNow();
   g.textAlign = 'left'; var y = 78;
-  lines.forEach(function (l) { g.fillStyle = l[1] ? '#28282d' : '#735328'; g.font = (l[1] ? '50px' : '38px') + ' Eniee, Georgia, serif'; g.fillText(l[0], 44, y); y += l[1] ? 70 : 52; });
+  lines.forEach(function (l) { g.fillStyle = l[1] ? '#28282d' : '#735328'; g.font = (l[1] ? '48px' : '36px') + ' Eniee, Georgia, serif'; g.fillText(l[0], 44, y); y += l[1] ? 66 : 50; });
 }
 function signNow() {
   var L = lift(S.up), W = weight(), f = freeAltitude(), mk = made(), out = [['NOW', 1]];
-  if (S.gas === 'hydrogen') out.push(['Zuppe made: ' + Math.round(S.fill * 100) + '%, ' + fmt(mk.h2) + ' kg of hydrogen.', 0], ['Iron spent: ' + fmt(mk.iron) + ' kg; water: ' + fmt(mk.water) + ' kg.', 0], ['Heat from the iron: ' + (mk.heatOut / 1e9).toFixed(2) + ' GJ; boiling the drops', 0], ['took back ' + (mk.boil / 1e9).toFixed(2) + ' GJ. The fire keeps the plate red.', 0]);
+  if (S.gas === 'hydrogen') out.push(['Zuppe made: ' + Math.round(S.fill * 100) + '%, ' + fmt(mk.h2) + ' kg of hydrogen.', 0], ['Iron rusted: ' + fmt(mk.iron) + ' kg; water: ' + fmt(mk.water) + ' kg.', 0], ['Heat from the iron: ' + (mk.heatOut / 1e9).toFixed(2) + ' GJ; boiling the drops', 0], ['took back ' + (mk.boil / 1e9).toFixed(2) + ' GJ. The fire keeps the plate red.', 0]);
+  else if (S.gas === 'magnesium') out.push(['Zuppe made: ' + Math.round(S.fill * 100) + '%, ' + fmt(mk.h2) + ' kg of hydrogen.', 0], ['Magnesium spent: ' + fmt(mk.mg) + ' kg; water: ' + fmt(mk.mgWater) + ' kg.', 0], ['Heat given: ' + (mk.mgHeat / 1e9).toFixed(2) + ' GJ, and no fire wanted.', 0], ['It leaves ' + fmt(mk.mgOH2) + ' kg of magnesium hydroxide.', 0]);
   else out.push(['Zuppe as a vacuum: ' + Math.round(S.fill * 100) + '% emptied.', 0], ['The shell would bear ' + fmt(isa(N.mesa).P / 9.80665) + ' kg on every', 0], ['square metre. No frame of 1912 could.', 0], ['', 0]);
   out.push(['Lift ' + fmt(L) + ' kg; weight ' + fmt(W) + ' kg; spare ' + (L - W >= 0 ? '+' : '') + fmt(L - W) + ' kg.', 0]);
   out.push([isNaN(f) ? 'She stays on her weights.' : 'Free, she would stand at ' + fmt(N.mesa + f) + ' m.', 0]);
   out.push(['On our tether: ' + S.up.toFixed(1) + ' m up.', 0]);
+  var pl = pile(); out.push(['A pile of her spare lift, ' + fmt(pl.kg) + ' kg, would hold ' + pl.kwh.toFixed(1) + ' kWh:', 0], ['enough to make ' + pl.h2.toFixed(2) + ' kg of hydrogen, ' + (pl.ofHull * 100).toFixed(2) + '% of her hull.', 0]);
   return out;
 }
 
@@ -256,7 +272,8 @@ function paint() {
   document.getElementById('liftfill').style.height = Math.min(100, lift(S.up) / Lfull * 100) + '%';
   document.getElementById('lifttick').style.bottom = Math.min(100, weight() / Lfull * 100) + '%';
   document.getElementById('zuppefill').style.height = S.fill * 100 + '%';
-  document.getElementById('heatfill').style.height = (S.gas === 'hydrogen' ? S.fill * 100 : 0) + '%';
+  var mk2 = made(); document.getElementById('heatfill').style.height = Math.min(100, (S.gas === 'hydrogen' ? mk2.heatOut : S.gas === 'magnesium' ? mk2.mgHeat : 0) / HEAT_SCALE * 100) + '%';   // iron's heat reaches about a tenth of magnesium's
+  document.getElementById('pilefill').style.height = Math.min(100, pile().ofHull * 100) + '%';   // the share of her hull a pile she could carry would fill
   document.getElementById('souls').textContent = S.souls;
   document.getElementById('gas').textContent = 'Zuppe: ' + GASES[S.gas].name;
   document.getElementById('vent').className = S.venting ? 'on' : '';
@@ -268,7 +285,7 @@ function paint() {
 }
 document.getElementById('less').onclick = function () { S.souls = Math.max(0, S.souls - 1); paint(); };
 document.getElementById('more').onclick = function () { S.souls = Math.min(40, S.souls + 1); paint(); };
-document.getElementById('gas').onclick = function () { S.gas = S.gas === 'hydrogen' ? 'vacuum' : 'hydrogen'; S.fill = 0; S.making = false; paint(); };
+document.getElementById('gas').onclick = function () { S.gas = { hydrogen: 'magnesium', magnesium: 'vacuum', vacuum: 'hydrogen' }[S.gas]; S.fill = 0; S.making = false; paint(); };
 document.getElementById('vent').onclick = function () { S.venting = !S.venting; if (S.venting) S.making = false; paint(); };
 addEventListener('keydown', function (e) { if (e.code === 'Escape' && window.parent !== window) { try { window.parent.document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' })); } catch (x) {} } });
 

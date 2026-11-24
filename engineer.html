@@ -6,35 +6,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   @font-face{font-family:'Eniee';src:url('fonts/EnieeSlender-Regular.woff2') format('woff2');font-display:swap}
-  :root{ --sky:#a8d4e0; --paper:#f3eee2; --ink:#2b2b33; --red:#b8452a; --green:#6f8c6a; --blue:#8ea0b0; --pink:#e8b4b0; --gold:#c9a44a; --wash:#e9e2d0; --tan:#d9b77a; }
-  html,body{margin:0;background:#1a1816;color:var(--ink);font-family:Georgia,"Times New Roman",serif}
+  :root{ --sky:#a8d4e0; --paper:#f3eee2; --ink:#2b2b33; --red:#b8452a; --green:#6f8c6a; --blue:#8ea0b0; --pink:#e8b4b0; --gold:#c9a44a; --wash:#e9e2d0; --tan:#d9b77a;
+    --room:#1a1816; --roombright:#fff; --roomtan:#d9b77a; --roomdim:#9a9690; --roomline:#3a3530; --roomsep:#5a544c; --roomshadow:#000; --roomcuff:#fff; }
+  /* the Day lamp: the room is paper, #F0EBDF (User1, 24 xi 2026; first #CEC2C2, the shade around Dellschau's lettering). Every other colour is an ink laid on it, given here as it shows after multiplying: ink x paper / 255. */
+  body:not(.night):not(.dark){ --room:#f0ebdf; --roombright:#28282d; --roomtan:#735328; --roomdim:#686256; --roomline:#bcb19f; --roomsep:#91887a; --roomshadow:rgba(80,60,40,.35); --roomcuff:#f0ebdf }
+  html{margin:0} body{margin:0;background:var(--room);color:var(--ink);font-family:Georgia,"Times New Roman",serif}
   header{display:none}
-  #bar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;background:#1a1816;border-bottom:1px solid #3a3530;padding:10px 22px;color:var(--tan);font-family:'Eniee',Georgia,serif;font-size:21px;letter-spacing:0}
-  #bar b{font-weight:400;color:#fff;display:block;font-size:22px;line-height:1.1}
-  #bar small{display:block;font-size:16px;line-height:1.2;color:var(--tan)}
-  #bar .right{display:flex;align-items:center;gap:14px}
-  #bar a{display:flex;align-items:center;gap:8px;color:var(--tan);text-decoration:none;cursor:pointer;user-select:none;min-height:24px;font-size:13px;letter-spacing:.14em}
-  #bar a:hover{color:#fff}
-  #bar a svg{width:20px;height:20px;display:block}
-  #bar a.on{color:#fff} #bar a.on svg{fill:#fff}
-  #bar .sep{width:1px;height:18px;background:#5a544c;margin:0 4px}
+  #bar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;background:var(--room);border-bottom:1px solid var(--roomline);padding:10px 22px;color:var(--roomtan);font-family:'Eniee',Georgia,serif;font-size:21px;letter-spacing:0}
+  #bar summary b{font-weight:400;color:var(--roombright);display:block;font-size:22px;line-height:1.1}
+  #bar small{display:block;font-size:16px;line-height:1.2;color:var(--roomtan)}
+  /* the mast opens: what it says is the summary, and two lines beneath say who and what (User1, 24 xi 2026). A small mark after the name says it opens. */
+  #bar summary{display:block;list-style:none;cursor:pointer} #bar summary::-webkit-details-marker{display:none}
+  #bar summary b::after{content:' \25B8';font-size:.6em;vertical-align:.2em;color:var(--roomtan)} #bar details[open] summary b::after{content:' \25BE'}
+  #bar .more{max-width:46em;font-size:16px;line-height:1.45;color:var(--roomtan);padding:6px 0 4px} #bar .more p{margin:0 0 .45em}
+  #bar summary:focus-visible{outline:2px solid #d9b77a;outline-offset:3px;border-radius:2px}
+  #bar .right{display:flex;align-items:center;gap:14px;align-self:flex-start;margin-top:10px}   /* Play, Pause and the lamps keep to the top when the mast opens (User1, 24 xi 2026); 10 px is where centring put them when it is closed */
+  #bar a{display:flex;align-items:center;gap:8px;color:var(--roomtan);text-decoration:none;cursor:pointer;user-select:none;min-height:24px;font-size:13px;letter-spacing:.14em}
+  #bar a:hover{color:var(--roombright)}
+  #bar a svg{width:20px;height:20px;display:block;fill:var(--roomtan)}
+  #bar a.on{color:var(--roombright)} #bar a.on svg{fill:var(--roombright)}
+  #bar .sep{width:1px;height:18px;background:var(--roomsep);margin:0 4px}
   /* the keyboard: everything pressable is focusable; focus is shown, quietly */
   a:focus-visible,section.sheet:focus-visible,#home:focus-visible{outline:2px solid #d9b77a;outline-offset:3px;border-radius:2px}
   section.sheet{outline-offset:-2px}
   main{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:12px 22px 10px}
   .sheet{background:transparent}
-  .sheet svg[data-face=sheet]{background:var(--paper);box-shadow:0 2px 0 #000, inset 0 0 60px rgba(90,70,40,.18)}
+  .sheet svg[data-face=sheet]{background:var(--paper);box-shadow:0 2px 0 var(--roomshadow), inset 0 0 60px rgba(90,70,40,.18)}
   svg{display:block;width:100%;height:auto}
-  nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 22px 14px;color:var(--tan);font-size:16px;letter-spacing:.14em}
-  nav .page{grid-column:2;font-size:15px;color:#fff;text-align:center}
+  nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 22px 14px;color:var(--roomtan);font-size:16px;letter-spacing:.14em}
+  nav .page{grid-column:1 / -1;justify-self:start;font-family:'Eniee',Georgia,serif;font-size:22px;line-height:1.1;letter-spacing:0;color:var(--roombright);text-align:left}   /* a left headline, the top title's size and ink, untracked (User1, 24 xi 2026) */
   nav .right{grid-column:3;display:flex;justify-content:flex-end;align-items:center;gap:14px}
-  nav a{display:flex;align-items:center;gap:8px;color:var(--tan);text-decoration:none;cursor:pointer;user-select:none;min-height:24px}
-  nav a:hover{color:#fff}
-  nav a svg{width:32px;height:20px;display:block}
+  nav a{display:flex;align-items:center;gap:8px;color:var(--roomtan);text-decoration:none;cursor:pointer;user-select:none;min-height:24px}
+  nav a:hover{color:var(--roombright)}
+  nav a svg{width:32px;height:20px;display:block;fill:var(--roomtan)}
   nav a.mode svg{width:20px;height:20px}
-  nav a.mode.on{color:#fff} nav a.mode.on svg{fill:#fff}
-  nav .sep{width:1px;height:18px;background:#5a544c;margin:0 4px}
-  footer{color:var(--tan);padding:0 22px 30px;font-size:15px;line-height:1.55;max-width:66em;margin:0 auto;text-align:center}
+  nav a.mode.on{color:var(--roombright)} nav a.mode.on svg{fill:var(--roombright)}
+  nav .sep{width:1px;height:18px;background:var(--roomsep);margin:0 4px}
+  footer{color:var(--roomtan);padding:0 22px 30px;font-family:'Eniee',Georgia,serif;font-size:16px;line-height:1.5;max-width:66em;margin:0;text-align:left}
+  footer p{margin:0 0 .5em}   /* a paragraph to every sentence (User1, 24 xi 2026) */
+  /* SATURNUS and GONDLEUR, each in a cartouche: a rounded box in half the ink of its word, as one encloses a name that carried people (User1, 24 xi 2026) */
+  .cartouche{border:1px solid color-mix(in srgb, currentColor 50%, transparent);border-radius:.4em;padding:0 .3em;white-space:nowrap}
   /* modes: the sheet is what changes; the room stays dark */
   /* night and dark are PALETTES, computed once from the day tinctures (invert then hue-rotate 192; or dim),
      and set as variables on body — no filter runs, nothing is re-rasterised. the Amiga answer. */
@@ -51,9 +62,9 @@
   body.paused .spin,body.paused .sway,body.paused .nod,body.paused .rain{animation-play-state:paused}
   /* click any sheet and it fills the window, in continuity; click again to put it back */
   .sheet{cursor:zoom-in;transition:transform .35s ease;position:relative}
-  .sheet .thumbname{display:block;text-align:center;padding:6px 4px 2px;font-family:'Eniee',Georgia,serif;font-size:13px;color:#9a9690;opacity:.82;pointer-events:none;letter-spacing:.04em;background:#1a1816}
+  .sheet .thumbname{display:block;text-align:center;padding:6px 4px 2px;font-family:'Eniee',Georgia,serif;font-size:13px;color:var(--roomdim);opacity:.82;pointer-events:none;letter-spacing:.04em;background:var(--room)}
   .sheet.zoom .thumbname{display:none}
-  .sheet.zoom{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#1a1816;cursor:zoom-out;box-shadow:none}
+  .sheet.zoom{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:var(--room);cursor:zoom-out;box-shadow:none}
   #lbtools{position:fixed;right:22px;top:var(--navtop,56px);z-index:30;display:none;gap:14px}
   body.lit #lbtools{display:flex}
   #lbtools a{color:#6f6a62;font-family:'Eniee',Georgia,serif;font-size:15px;cursor:pointer;user-select:none;padding:6px 2px;border-bottom:2px solid transparent}
@@ -78,29 +89,59 @@
   body.night #lbnav a,body.dark #lbnav a{color:#9a9690}
   body.night #lbnav a:hover,body.dark #lbnav a:hover{color:#fff}
   #lbnav svg{width:44px;height:36px;display:block;fill:currentColor}
-  footer b{font-weight:400;color:#fff}
+  footer b,#i2v b,#bar .more b{font-weight:400;color:var(--roombright)}   /* names, proper and airostant, in the headline's ink */
   /* the last card, after the words: "turn the lift wheel". It takes whatever width there is, and follows the lamps:
      dusk dims and browns it as the dark palette does; night inverts and turns it 192 degrees, as the night palette does. */
   #liftwheel{margin:0;padding:0 0 0}
   #liftwheel img{display:block;width:100%;height:auto;transition:filter .5s}
   body.dark #liftwheel img{filter:saturate(.5) sepia(.3) brightness(.6)}
   body.night #liftwheel img{filter:invert(1) hue-rotate(192deg)}
+  /* beneath the lift wheel: the machine's interpretations, set apart from the exhibit's own (User1, 23 xi 2026). Shown as made, not following the lamps. */
+  #i2v{max-width:1280px;margin:0 auto;padding:22px 22px 40px;color:var(--roomtan);font-family:'Eniee',Georgia,serif;font-size:16px;line-height:1.55;text-align:center}
+  #i2v p{margin:0 0 4px}
+  #i2v .row{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;align-items:flex-start}
+  #i2v video{flex:3 1 480px;min-width:0;width:100%;height:auto;aspect-ratio:16/9;display:block;background:#000}      /* 16:9, the movie's own shape, from the first: the box does not jump when it starts */
+  #i2v .thumbs{flex:1 1 180px;display:flex;flex-direction:column;gap:12px}
+  #i2v .thumbs figure{margin:0}
+  #i2v .thumbs a{display:block}
+  #i2v .thumbs img{display:block;width:100%;height:auto}
+  #i2v .thumbs figcaption{margin-top:4px;font-size:14px;line-height:1.35}
+  /* the thanks, centred below the movie and its pictures, set off by empty space, a fleuron and a coronis (User1, 24 xi 2026) */
+  #i2v .thanks{padding:64px 0 72px;text-align:center} #i2v .thanks p{margin:0 auto;max-width:44em} #i2v .thanks .orn{font-size:22px;line-height:1;color:var(--roombright);margin:18px auto}
 </style>
 </head>
 <body>
 <header><b>AERO CLUB OF SONORA</b> &nbsp;·&nbsp; ENGINEER'S SHEETS &nbsp;·&nbsp; 1904 &nbsp;·&nbsp; none of these are held up by gas</header>
-<div id="bar"><span class="mast" id="home" style="cursor:pointer" tabindex="0" role="link" aria-label="Return to the gallery"><b>The Sonora Airostant Club.</b><small>Illustrations by Chas. Dellschau, 1904-1912.</small></span><div class="right" id="barright"></div></div>
-<div id="lbtools" role="tablist" aria-label="Faces"><a data-face="sheet" class="on" tabindex="0" role="tab">SHEET</a><a data-face="text" tabindex="0" role="tab">TEXT</a><a data-face="original" tabindex="0" role="tab">ORIGINAL</a></div>
+<div id="bar"><details class="mast" id="about"><summary id="home"><b>The Sonora Airostant Club.</b><small>Illustrations by Chas. Dellschau, 1904-1912.</small></summary><div class="more"><p><b>Charles A. A. Dellschau</b> (1830-1923), a <b>Prussian</b>-born butcher and saddlery clerk in <b>Texas</b>, retired in 1899 and filled at least thirteen books, in an attic in <b>Houston</b>, with the airships of a club of aeronauts he said had flown at <b>Sonora</b>, in <b>Gold Rush California</b>, with himself as their draftsman.</p><p>Each page - which <b>Dellschau</b> called a "plate" - is numbered, but the sequence begins at 1601, implying earlier plates were lost or destroyed. He drew perhaps as many as 100 named aero designs: <b>MIO</b>, <b>SCHNABEL</b>, <b>MARY</b>, <b>JOURDAN</b>, "<b>TRUMP</b>", <b>DOOBELY</b>, <b>GOOSE</b>, and one <b>Joe Cheney</b>'s decalift <b>SATURNUS</b>. By the calculation of <b>William Steen</b>, of the <b>Menil Collection</b>, his some 5,000 drawings came at a rate of one every one or two days.</p><p><b>Pete Navarro</b>, a <b>Houston</b> commercial artist and UFO researcher, bought eight of the twelve surviving notebooks in 1972, and tried to decode them. As early as 1970, <b>Navarro</b> linked the club to the mystery airship sightings of 1896-97, first over <b>Sacramento</b> and then across <b>Texas</b>. This remains unproven and is not a scholarly consensus.</p><p><b>Dellschau</b>'s own written account is a two-part journal of some 200 pages, in <b>German</b>. <b>Dennis Crenshaw</b>, with <b>Navarro</b>, later published their findings in <b>The Secrets of Dellschau: The Sonora Aero Club and the Airships of the 1800s, a True Story</b> (2009). The journal and the twelve surviving scrapbooks together constitute the primary source for everything about the club.</p><p>The books lay untouched for half a century, went out with the trash after a fire in the late 1960s, and were saved by a furniture dealer, <b>Fred Washington</b>. Outside his pages, no record of the <b>Club</b> has yet been found.</p></div></details><div class="right" id="barright"></div></div>
+<div id="lbtools" role="tablist" aria-label="Faces"><a data-face="sheet" class="on" tabindex="0" role="tab">SHEET</a><a data-face="original" tabindex="0" role="tab">ORIGINAL</a><a data-face="text" tabindex="0" role="tab">TEXT</a></div>
 <div id="lbnav"><a id="lbprev" title="previous" tabindex="0" role="button" aria-label="Previous sheet"><svg viewBox="0 0 44 36"><path d="M34 4 L12 18 L34 32 Z"/></svg></a><a id="lbnext" title="next" tabindex="0" role="button" aria-label="Next sheet"><svg viewBox="0 0 44 36"><path d="M10 4 L32 18 L10 32 Z"/></svg></a></div>
 <main id="sheets"></main>
 <nav id="nav"></nav>
 <footer>
-This exhibit is intended to take Charles at the word of his pen. Some feel Dellschau's illustrations are intended to
-represent helicopters or inflatable balloons. He seemed to feel differently, and so wrote and illustrated. Actual men and
-women of that place and time, some well-known, are mentioned among the Club in his drawings. Joe Cheney's decalift SATURNUS,
-Honoré Laurence's GONDLEUR. He appeared to draw inspiration from them as a group.
+<p>This exhibit is intended to take <b>Charles</b> at the word of his pen.</p>
+<p>Some feel <b>Dellschau</b>'s illustrations are intended to represent helicopters or inflatable balloons.</p>
+<p>He seemed to feel differently, and so wrote and illustrated.</p>
+<p>Actual men and women of that place and time, some well-known, are mentioned among the <b>Club</b> in his drawings.</p>
+<p><b>Joe Cheney</b>'s decalift <b class="cartouche">SATURNUS</b>, <b>Honoré Laurence</b>'s <b class="cartouche">GONDLEUR</b>.</p>
+<p>He appeared to draw inspiration from them as a group.</p>
 </footer>
 <figure id="liftwheel"><img src="assets/__paperprints/Turn%20the%20lift%20wheel%20-%20CD%20film%20title.png" alt="Turn the lift wheel: a title card after Dellschau" loading="lazy" width="1280" height="720"></figure>
+<section id="i2v" aria-label="Machine-interpreted images and movies">
+<p>The images and movies below are machine-interpreted, not <b>Dellschau</b>'s own movies.</p>
+<p>Image to Video library: <b>Wan 2.1</b>. No sound.</p>
+<div class="row">
+<video controls muted playsinline preload="none" width="1920" height="1080" poster="assets/i2vs/turn%20the%20lift%20wheel%20-%20paper%20-preview%20.JPG" aria-label="Turn the lift wheel, on paper: a machine-made movie, 58 seconds, no sound"><source src="assets/i2vs/turn%20the%20lift%20wheel%20-%20paper%20-rc%20.mp4" type="video/mp4"></video>
+<div class="thumbs">
+<figure><a href="assets/i2vs/turn%20the%20lift%20wheel%20-%20title1%20.JPG"><img src="assets/i2vs/turn%20the%20lift%20wheel%20-%20title1%20-thumb%20.jpg" alt="The lift wheel, from George Newell's page, full size" loading="lazy" width="640" height="360"></a><figcaption>The lift wheel, from <b>George Newell</b>'s page</figcaption></figure>
+<figure><a href="assets/i2vs/turn%20the%20lift%20wheel%20-%20title3%20.JPG"><img src="assets/i2vs/turn%20the%20lift%20wheel%20-%20title3%20-thumb%20.jpg" alt="Turn the lift wheel: the Charles Dellschau file, full size" loading="lazy" width="640" height="360"></a><figcaption>Turn the lift wheel: the <b>Charles Dellschau</b> file</figcaption></figure>
+</div>
+</div>
+<div class="thanks">
+<p class="orn" aria-hidden="true">❦</p>
+<p>Thanks to Journalist <b>Daniel Liszt</b>, Authors <b>Walter Bosley</b> and <b>Joseph P. Farrell</b>, Anthroposophy scholar <b>Gigi Young</b>, the <b>Houston Chronicle</b>, the <b>San Antonio Museum of Art</b>, and <b>Charles</b>.</p>
+<p class="orn" aria-hidden="true">⸎</p>
+</div>
+</section>
 
 <script>
 (function(){
@@ -609,15 +650,15 @@ var SHEETS=[
 /* ---------- a manicule, drawn, not typed: Unicode is wacky ---------- */
 function manicule(flip){
   var svg=el('svg',{viewBox:'0 0 64 40'});
-  var g=el('g',{fill:'var(--tan)',stroke:'none',transform: flip?'translate(64 0) scale(-1 1)':''});
+  var g=el('g',{fill:'var(--roomtan)',stroke:'none',transform: flip?'translate(64 0) scale(-1 1)':''});
   // cuff
-  g.appendChild(el('path',{d:'M2 12 h12 v18 H2 Z'})); g.appendChild(el('path',{d:'M4 10 h8 v2 H4 Z',fill:'#fff'}));
+  g.appendChild(el('path',{d:'M2 12 h12 v18 H2 Z'})); g.appendChild(el('path',{d:'M4 10 h8 v2 H4 Z',fill:'var(--roomcuff)'}));
   // fist and fingers folded
   g.appendChild(el('path',{d:'M14 12 h16 q6 0 6 6 v10 q0 4 -4 4 H14 Z'}));
   g.appendChild(el('path',{d:'M30 20 h8 q3 0 3 3 q0 3 -3 3 h-8 Z'})); g.appendChild(el('path',{d:'M30 26 h6 q3 0 3 2.5 q0 2.5 -3 2.5 h-6 Z'}));
   // the index, extended
   g.appendChild(el('path',{d:'M28 12 h30 q4 0 4 3.5 q0 3.5 -4 3.5 H28 Z'}));
-  g.appendChild(el('path',{d:'M28 13 h28',stroke:'#1a1816','stroke-width':.8,fill:'none',opacity:.6}));
+  g.appendChild(el('path',{d:'M28 13 h28',stroke:'var(--room)','stroke-width':.8,fill:'none',opacity:.6}));
   svg.appendChild(g); return svg;
 }
 
@@ -714,9 +755,9 @@ function bar(){
   [['night',moonIcon],['day',sunIcon],['dark',halfIcon]].forEach(function(m){ var a=document.createElement('a'); a.className='mode'+(mode===m[0]?' on':''); a.title=m[0]; a.tabIndex=0; a.setAttribute('role','button'); a.setAttribute('aria-label',m[0]+' lamp'); a.appendChild(m[1]()); a.onclick=function(){ setMode(m[0]); }; r.appendChild(a); });
 }
 /* the three lamps, drawn */
-function moonIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--tan)'}); s.appendChild(el('path',{d:'M12 2 a8 8 0 1 0 6 13 a7 7 0 0 1 -6 -13 Z'})); return s; }
-function sunIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--tan)'}); s.appendChild(el('circle',{cx:10,cy:10,r:4})); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; s.appendChild(el('line',{x1:10+Math.cos(a)*6,y1:10+Math.sin(a)*6,x2:10+Math.cos(a)*9,y2:10+Math.sin(a)*9,stroke:'currentColor','stroke-width':1.6,'stroke-linecap':'round'})); } return s; }
-function halfIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--tan)'}); s.appendChild(el('circle',{cx:10,cy:10,r:8,fill:'none',stroke:'currentColor','stroke-width':1.6})); s.appendChild(el('path',{d:'M10 2 a8 8 0 0 1 0 16 Z'})); return s; }
+function moonIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--roomtan)'}); s.appendChild(el('path',{d:'M12 2 a8 8 0 1 0 6 13 a7 7 0 0 1 -6 -13 Z'})); return s; }
+function sunIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--roomtan)'}); s.appendChild(el('circle',{cx:10,cy:10,r:4})); for(var k=0;k<8;k++){ var a=k/8*Math.PI*2; s.appendChild(el('line',{x1:10+Math.cos(a)*6,y1:10+Math.sin(a)*6,x2:10+Math.cos(a)*9,y2:10+Math.sin(a)*9,stroke:'currentColor','stroke-width':1.6,'stroke-linecap':'round'})); } return s; }
+function halfIcon(){ var s=el('svg',{viewBox:'0 0 20 20',fill:'var(--roomtan)'}); s.appendChild(el('circle',{cx:10,cy:10,r:8,fill:'none',stroke:'currentColor','stroke-width':1.6})); s.appendChild(el('path',{d:'M10 2 a8 8 0 0 1 0 16 Z'})); return s; }
 /* ---------- the palettes: day as written; night = invert then hue-rotate 192; dark = dimmed and browned. computed once. ---------- */
 var TINCT=['paper','ink','red','green','blue','pink','gold','wash','sky'];
 var DAY={};
